@@ -23,6 +23,7 @@
 - [tvOS](README-ios.md)
 - [Windows](README-windows.md)
 - [Windows GDK](README-gdk.md)
+- [Windows UWP](README-winrt.md)
 - [Xbox](README-gdk.md)
 
 ## Unsupported Platforms
@@ -36,5 +37,3 @@ All of these still work with [SDL2](/SDL2), which is an incompatible API, but an
 - Nokia N-Gage
 - OS/2
 - QNX
-- WinPhone
-- WinRT/UWP

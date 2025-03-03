@@ -39,6 +39,13 @@ SDL_mutex_impl_t SDL_mutex_impl_active = { 0 };
  * Implementation based on Slim Reader/Writer (SRW) Locks for Win 7 and newer.
  */
 
+#ifdef SDL_PLATFORM_WINRT
+// Functions are guaranteed to be available
+#define pInitializeSRWLock InitializeSRWLock
+#define pReleaseSRWLockExclusive    ReleaseSRWLockExclusive
+#define pAcquireSRWLockExclusive    AcquireSRWLockExclusive
+#define pTryAcquireSRWLockExclusive TryAcquireSRWLockExclusive
+#else
 typedef VOID(WINAPI *pfnInitializeSRWLock)(PSRWLOCK);
 typedef VOID(WINAPI *pfnReleaseSRWLockExclusive)(PSRWLOCK);
 typedef VOID(WINAPI *pfnAcquireSRWLockExclusive)(PSRWLOCK);
@@ -47,6 +54,7 @@ static pfnInitializeSRWLock pInitializeSRWLock = NULL;
 static pfnReleaseSRWLockExclusive pReleaseSRWLockExclusive = NULL;
 static pfnAcquireSRWLockExclusive pAcquireSRWLockExclusive = NULL;
 static pfnTryAcquireSRWLockExclusive pTryAcquireSRWLockExclusive = NULL;
+#endif
 
 static SDL_Mutex *SDL_CreateMutex_srw(void)
 {
@@ -136,7 +144,12 @@ static SDL_Mutex *SDL_CreateMutex_cs(void)
         // Initialize
         // On SMP systems, a non-zero spin count generally helps performance
         // This function always succeeds
+#ifdef SDL_PLATFORM_WINRT
+        InitializeCriticalSectionEx(&mutex->cs, 2000, 0);
+#else
+        // This function always succeeds
         (void)InitializeCriticalSectionAndSpinCount(&mutex->cs, 2000);
+#endif
     }
     return (SDL_Mutex *)mutex;
 }
@@ -182,6 +195,9 @@ static const SDL_mutex_impl_t SDL_mutex_impl_cs = {
 SDL_Mutex *SDL_CreateMutex(void)
 {
     if (!SDL_mutex_impl_active.Create) {
+#ifdef SDL_PLATFORM_WINRT
+        const SDL_mutex_impl_t *impl = &SDL_mutex_impl_srw;
+#else
         const SDL_mutex_impl_t *impl = &SDL_mutex_impl_cs;
 
         // Try faster implementation for Windows 7 and newer
@@ -197,6 +213,7 @@ SDL_Mutex *SDL_CreateMutex(void)
                 impl = &SDL_mutex_impl_srw;
             }
         }
+#endif // SDL_PLATFORM_WINRT
 
         // Copy instead of using pointer to save one level of indirection
         SDL_copyp(&SDL_mutex_impl_active, impl);

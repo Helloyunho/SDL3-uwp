@@ -593,6 +593,13 @@ static bool WGI_JoystickInit(void)
         return SDL_SetError("RoInitialize() failed");
     }
 
+#ifdef SDL_PLATFORM_WINRT
+    wgi.CoIncrementMTAUsage = CoIncrementMTAUsage;
+    wgi.RoGetActivationFactory = RoGetActivationFactory;
+    wgi.WindowsCreateStringReference = WindowsCreateStringReference;
+    wgi.WindowsDeleteString = WindowsDeleteString;
+    wgi.WindowsGetStringRawBuffer = WindowsGetStringRawBuffer;
+#else
 #define RESOLVE(x) wgi.x = (x##_t)WIN_LoadComBaseFunction(#x); if (!wgi.x) return WIN_SetError("GetProcAddress failed for " #x);
     RESOLVE(CoIncrementMTAUsage);
     RESOLVE(RoGetActivationFactory);
@@ -600,7 +607,9 @@ static bool WGI_JoystickInit(void)
     RESOLVE(WindowsDeleteString);
     RESOLVE(WindowsGetStringRawBuffer);
 #undef RESOLVE
+#endif // SDL_PLATFORM_WINRT
 
+#ifndef SDL_PLATFORM_WINRT
     {
         /* There seems to be a bug in Windows where a dependency of WGI can be unloaded from memory prior to WGI itself.
          * This results in Windows_Gaming_Input!GameController::~GameController() invoking an unloaded DLL and crashing.
@@ -615,6 +624,7 @@ static bool WGI_JoystickInit(void)
             }
         }
     }
+#endif
 
     WGI_LoadRawGameControllerStatics();
 
