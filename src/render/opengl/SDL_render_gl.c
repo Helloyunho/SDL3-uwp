@@ -1617,7 +1617,7 @@ static bool GL_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL_Pr
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
 
-#ifndef SDL_VIDEO_VITA_PVR_OGL
+#if !defined SDL_VIDEO_VITA_PVR_OGL && !defined __WINRT__
     SDL_SyncWindow(window);
     window_flags = SDL_GetWindowFlags(window);
     if (!(window_flags & SDL_WINDOW_OPENGL) ||
@@ -1830,7 +1830,9 @@ error:
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile_mask);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
+#ifndef __WINRT__
         SDL_RecreateWindow(window, window_flags);
+#endif
         SDL_SetError("%s", error);
         SDL_free(error);
     }
