@@ -433,7 +433,7 @@ static void Cocoa_DisplayReconfigurationCallback(CGDirectDisplayID displayid, CG
         }
     }
 
-    if ((flags & kCGDisplaySetModeFlag) && !_this->setting_display_mode) {
+    if (flags & kCGDisplaySetModeFlag) {
         if (display) {
             CGDisplayModeRef moderef = CGDisplayCopyDisplayMode(displayid);
             if (moderef) {
@@ -644,7 +644,9 @@ static CGError SetDisplayModeForDisplay(CGDirectDisplayID display, SDL_DisplayMo
         result = CGDisplaySetDisplayMode(display, moderef, NULL);
         if (result == kCGErrorSuccess) {
             // If this mode works, try it first next time.
-            CFArrayExchangeValuesAtIndices(data->modes, i, 0);
+            if (i > 0) {
+                CFArrayExchangeValuesAtIndices(data->modes, i, 0);
+            }
             break;
         }
     }

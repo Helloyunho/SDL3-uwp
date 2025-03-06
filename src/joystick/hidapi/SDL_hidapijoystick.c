@@ -1127,6 +1127,7 @@ check_removed:
                     HIDAPI_DelDevice(device->children[i]);
                 }
                 HIDAPI_DelDevice(device);
+                device = NULL;
 
                 // Update the device list again to pick up any children left
                 SDL_HIDAPI_change_count = 0;
@@ -1140,7 +1141,7 @@ check_removed:
                 SDL_HIDAPI_change_count = 0;
             }
         }
-        if (device->broken && device->parent) {
+        if (device && device->broken && device->parent) {
             HIDAPI_DelDevice(device->parent);
 
             // We deleted a different device here, restart the loop
