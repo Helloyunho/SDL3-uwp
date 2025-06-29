@@ -25,15 +25,11 @@
 #include "SDL_windows.h"
 
 #include <objbase.h> // for CoInitialize/CoUninitialize (Win32 only)
-#ifdef HAVE_ROAPI_H
-#include <roapi.h> // For RoInitialize/RoUninitialize (Win32 only)
-#else
 typedef enum RO_INIT_TYPE
 {
     RO_INIT_SINGLETHREADED = 0,
     RO_INIT_MULTITHREADED = 1
 } RO_INIT_TYPE;
-#endif
 
 #ifndef _WIN32_WINNT_VISTA
 #define _WIN32_WINNT_VISTA 0x0600
@@ -186,16 +182,16 @@ static BOOL IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WO
 
 // apply some static variables so we only call into the Win32 API once per process for each check.
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
-    #define CHECKWINVER(notdesktop_platform_result, test) return (notdesktop_platform_result);
+#define CHECKWINVER(notdesktop_platform_result, test) return (notdesktop_platform_result);
 #else
-    #define CHECKWINVER(notdesktop_platform_result, test) \
-        static bool checked = false; \
-        static BOOL result = FALSE; \
-        if (!checked) { \
-            result = (test); \
-            checked = true; \
-        } \
-        return result;
+#define CHECKWINVER(notdesktop_platform_result, test) \
+    static bool checked = false;                      \
+    static BOOL result = FALSE;                       \
+    if (!checked) {                                   \
+        result = (test);                              \
+        checked = true;                               \
+    }                                                 \
+    return result;
 #endif
 
 // this is the oldest thing we run on (and we may lose support for this in SDL3 at any time!),
@@ -223,7 +219,6 @@ BOOL WIN_IsWindows8OrGreater(void)
 }
 
 #undef CHECKWINVER
-
 
 /*
 WAVExxxCAPS gives you 31 bytes for the device name, and just truncates if it's
@@ -363,11 +358,10 @@ SDL_AudioFormat SDL_WaveFormatExToSDLFormat(WAVEFORMATEX *waveformat)
     return SDL_AUDIO_UNKNOWN;
 }
 
-
 int WIN_WideCharToMultiByte(UINT CodePage, DWORD dwFlags, LPCWCH lpWideCharStr, int cchWideChar, LPSTR lpMultiByteStr, int cbMultiByte, LPCCH lpDefaultChar, LPBOOL lpUsedDefaultChar)
 {
     if (WIN_IsWindowsXP()) {
-        dwFlags &= ~WC_ERR_INVALID_CHARS;  // not supported before Vista. Without this flag, it will just replace bogus chars with U+FFFD. You're on your own, WinXP.
+        dwFlags &= ~WC_ERR_INVALID_CHARS; // not supported before Vista. Without this flag, it will just replace bogus chars with U+FFFD. You're on your own, WinXP.
     }
     return WideCharToMultiByte(CodePage, dwFlags, lpWideCharStr, cchWideChar, lpMultiByteStr, cbMultiByte, lpDefaultChar, lpUsedDefaultChar);
 }

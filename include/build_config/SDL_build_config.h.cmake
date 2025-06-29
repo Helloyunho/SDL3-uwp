@@ -549,4 +549,7 @@ typedef unsigned int uintptr_t;
 #cmakedefine SDL_DISABLE_LASX 1
 #cmakedefine SDL_DISABLE_NEON 1
 
+#cmakedefine __XBOXSERIES__ 1
+#cmakedefine SDL_PLATFORM_XBOXSERIES 1
+
 #endif /* SDL_build_config_h_ */

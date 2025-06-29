@@ -1912,6 +1912,8 @@ elseif(WINDOWS)
       "${SDL3_SOURCE_DIR}/src/core/winrt/*.cpp"
       "${SDL3_SOURCE_DIR}/src/main/winrt/*.cpp"
     )
+    set(__XBOXSERIES__ TRUE)
+    set(SDL_PLATFORM_XBOXSERIES TRUE)
   endif()
 
   if(TARGET SDL3-shared AND MSVC AND NOT SDL_LIBC)
@@ -1946,9 +1948,11 @@ elseif(WINDOWS)
 
     check_include_file(d3d9.h HAVE_D3D9_H)
     check_include_file(d3d11_1.h HAVE_D3D11_H)
+    if(NOT WINDOWS_STORE)
     check_include_file(ddraw.h HAVE_DDRAW_H)
     check_include_file(dsound.h HAVE_DSOUND_H)
     check_include_file(dinput.h HAVE_DINPUT_H)
+    endif()
     if(WINDOWS_STORE OR SDL_CPU_ARM32) # !!! FIXME: this should probably check if we're !(x86 or x86-64) instead of arm.
       set(HAVE_DINPUT_H 0)
     endif()
@@ -1983,6 +1987,7 @@ elseif(WINDOWS)
     static __x_ABI_CWindows_CGaming_CInput_CIGamepadStatics2 *s2;
     int main(int argc, char **argv) { return 0; }" HAVE_WINDOWS_GAMING_INPUT_H
   )
+  if (NOT WINDOWS_STORE)
   check_c_source_compiles("
     #include <stdbool.h>
     #define COBJMACROS
@@ -1990,6 +1995,7 @@ elseif(WINDOWS)
     int main(int argc, char **argv) { return 0; }" HAVE_GAMEINPUT_H
   )
   check_include_file(dxgi1_6.h HAVE_DXGI1_6_H)
+  endif()
   check_include_file(tpcshrd.h HAVE_TPCSHRD_H)
   check_include_file(roapi.h HAVE_ROAPI_H)
   check_include_file(mmdeviceapi.h HAVE_MMDEVICEAPI_H)
@@ -2030,6 +2036,7 @@ elseif(WINDOWS)
         "${SDL3_SOURCE_DIR}/src/video/winrt/*.c"
         "${SDL3_SOURCE_DIR}/src/video/winrt/*.cpp"
         "${SDL3_SOURCE_DIR}/src/render/direct3d11/*.cpp"
+        "${SDL3_SOURCE_DIR}/src/video/windows/SDL_windowsopengl.c"
       )
     else()
       set(SDL_VIDEO_DRIVER_WINDOWS 1)
@@ -2161,14 +2168,14 @@ elseif(WINDOWS)
       set(HAVE_OPENGL TRUE)
     endif()
 
-    if(SDL_OPENGLES)
+    if(SDL_OPENGLES AND NOT WINDOWS_STORE)
       set(SDL_VIDEO_OPENGL_EGL 1)
       set(SDL_VIDEO_OPENGL_ES2 1)
       set(SDL_VIDEO_RENDER_OGL_ES2 1)
       set(HAVE_OPENGLES TRUE)
     endif()
 
-    if(SDL_VULKAN)
+    if(SDL_VULKAN AND NOT WINDOWS_STORE)
       set(SDL_VIDEO_VULKAN 1)
       set(HAVE_VULKAN TRUE)
       if(SDL_RENDER_VULKAN)
@@ -2182,7 +2189,11 @@ elseif(WINDOWS)
   endif()
 
   if(SDL_HIDAPI)
-    CheckHIDAPI()
+    if(NOT WINDOWS_STORE)
+      CheckHIDAPI()
+    else()
+      set(SDL_HIDAPI_DISABLED 1)
+    endif()
   endif()
 
   if(SDL_JOYSTICK)
@@ -3023,9 +3034,11 @@ endif()
 
 sdl_sources("${SDL3_SOURCE_DIR}/src/process/SDL_process.c")
 if(WINDOWS)
-  sdl_glob_sources("${SDL3_SOURCE_DIR}/src/process/windows/*.c")
-  set(SDL_PROCESS_WINDOWS 1)
-  set(HAVE_SDL_PROCESS TRUE)
+  if(NOT WINDOWS_STORE)
+    sdl_glob_sources("${SDL3_SOURCE_DIR}/src/process/windows/*.c")
+    set(SDL_PROCESS_WINDOWS 1)
+    set(HAVE_SDL_PROCESS TRUE)
+  endif()
 else()
   check_c_source_compiles("
 #include <spawn.h>

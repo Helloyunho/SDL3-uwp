@@ -145,11 +145,11 @@
 /* lets us know what version of macOS we're compiling on */
 #include <AvailabilityMacros.h>
 #ifndef __has_extension /* Older compilers don't support this */
-    #define __has_extension(x) 0
-    #include <TargetConditionals.h>
-    #undef __has_extension
+#define __has_extension(x) 0
+#include <TargetConditionals.h>
+#undef __has_extension
 #else
-    #include <TargetConditionals.h>
+#include <TargetConditionals.h>
 #endif
 
 /* Fix building with older SDKs that don't define these
@@ -157,22 +157,22 @@
     https://stackoverflow.com/questions/12132933/preprocessor-macro-for-os-x-targets
 */
 #ifndef TARGET_OS_MACCATALYST
-    #define TARGET_OS_MACCATALYST 0
+#define TARGET_OS_MACCATALYST 0
 #endif
 #ifndef TARGET_OS_IOS
-    #define TARGET_OS_IOS 0
+#define TARGET_OS_IOS 0
 #endif
 #ifndef TARGET_OS_IPHONE
-    #define TARGET_OS_IPHONE 0
+#define TARGET_OS_IPHONE 0
 #endif
 #ifndef TARGET_OS_TV
-    #define TARGET_OS_TV 0
+#define TARGET_OS_TV 0
 #endif
 #ifndef TARGET_OS_SIMULATOR
-    #define TARGET_OS_SIMULATOR 0
+#define TARGET_OS_SIMULATOR 0
 #endif
 #ifndef TARGET_OS_VISION
-    #define TARGET_OS_VISION 0
+#define TARGET_OS_VISION 0
 #endif
 
 #if TARGET_OS_TV
@@ -222,7 +222,7 @@
 #define SDL_PLATFORM_MACOS 1
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
-    #error SDL for macOS only supports deploying on 10.7 and above.
+#error SDL for macOS only supports deploying on 10.7 and above.
 #endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1070 */
 #endif /* TARGET_OS_IPHONE */
 #endif /* defined(__APPLE__) */
@@ -337,24 +337,24 @@
 
 /* Try to find out if we're compiling for WinRT, GDK or non-WinRT/GDK */
 #if defined(_MSC_VER) && defined(__has_include)
-    #if __has_include(<winapifamily.h>)
-        #define HAVE_WINAPIFAMILY_H 1
-    #else
-        #define HAVE_WINAPIFAMILY_H 0
-    #endif
-
-    /* If _USING_V110_SDK71_ is defined it means we are using the Windows XP toolset. */
-#elif defined(_MSC_VER) && (_MSC_VER >= 1700 && !_USING_V110_SDK71_)    /* _MSC_VER == 1700 for Visual Studio 2012 */
-    #define HAVE_WINAPIFAMILY_H 1
+#if __has_include(<winapifamily.h>)
+#define HAVE_WINAPIFAMILY_H 1
 #else
-    #define HAVE_WINAPIFAMILY_H 0
+#define HAVE_WINAPIFAMILY_H 0
+#endif
+
+/* If _USING_V110_SDK71_ is defined it means we are using the Windows XP toolset. */
+#elif defined(_MSC_VER) && (_MSC_VER >= 1700 && !_USING_V110_SDK71_) /* _MSC_VER == 1700 for Visual Studio 2012 */
+#define HAVE_WINAPIFAMILY_H 1
+#else
+#define HAVE_WINAPIFAMILY_H 0
 #endif
 
 #if HAVE_WINAPIFAMILY_H
-    #include <winapifamily.h>
-    #define WINAPI_FAMILY_WINRT (!WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP))
+#include <winapifamily.h>
+#define WINAPI_FAMILY_WINRT 1
 #else
-    #define WINAPI_FAMILY_WINRT 0
+#define WINAPI_FAMILY_WINRT 0
 #endif /* HAVE_WINAPIFAMILY_H */
 
 #ifdef SDL_WIKI_DOCUMENTATION_SECTION
@@ -367,13 +367,13 @@
 #define SDL_WINAPI_FAMILY_PHONE (WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP)
 
 #elif defined(HAVE_WINAPIFAMILY_H) && HAVE_WINAPIFAMILY_H
-    #define SDL_WINAPI_FAMILY_PHONE (WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP)
+#define SDL_WINAPI_FAMILY_PHONE (WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP)
 #else
-    #define SDL_WINAPI_FAMILY_PHONE 0
+#define SDL_WINAPI_FAMILY_PHONE 0
 #endif
 
 #if WINAPI_FAMILY_WINRT
-#define SDL_PLATFORM_WINRT   1
+#define SDL_PLATFORM_WINRT 1
 
 #elif defined(_GAMING_DESKTOP) /* GDK project configuration always defines _GAMING_XXX */
 
@@ -418,7 +418,6 @@
 
 #endif
 #endif /* defined(_WIN32) || defined(SDL_PLATFORM_CYGWIN) */
-
 
 /* This is to support generic "any GDK" separate from a platform-specific GDK */
 #if defined(SDL_PLATFORM_WINGDK) || defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
