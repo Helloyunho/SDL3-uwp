@@ -2038,7 +2038,6 @@ elseif(WINDOWS)
         "${SDL3_SOURCE_DIR}/src/video/winrt/*.c"
         "${SDL3_SOURCE_DIR}/src/video/winrt/*.cpp"
         "${SDL3_SOURCE_DIR}/src/render/direct3d11/*.cpp"
-        "${SDL3_SOURCE_DIR}/src/video/windows/SDL_windowsopengl.c"
       )
     else()
       set(SDL_VIDEO_DRIVER_WINDOWS 1)
@@ -2051,7 +2050,7 @@ elseif(WINDOWS)
       set(SDL_VIDEO_RENDER_D3D 1)
       set(HAVE_RENDER_D3D TRUE)
     endif()
-    if(SDL_RENDER_D3D11 AND HAVE_D3D11_H AND NOT WINDOWS_STORE)
+    if(SDL_RENDER_D3D11 AND HAVE_D3D11_H)
       set(SDL_VIDEO_RENDER_D3D11 1)
       set(HAVE_RENDER_D3D11 TRUE)
     endif()
@@ -2163,7 +2162,7 @@ elseif(WINDOWS)
   sdl_glob_sources("${SDL3_SOURCE_DIR}/src/core/windows/*.c")
 
   if(SDL_VIDEO)
-    if(SDL_OPENGL)
+    if(SDL_OPENGL AND NOT WINDOWS_STORE)
       set(SDL_VIDEO_OPENGL 1)
       set(SDL_VIDEO_OPENGL_WGL 1)
       set(SDL_VIDEO_RENDER_OGL 1)
