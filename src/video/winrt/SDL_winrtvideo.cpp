@@ -50,14 +50,14 @@ static const GUID SDL_IID_IDXGIFactory2 = { 0x50c83a1c, 0xe072, 0x4c48, { 0x87, 
 
 // SDL includes
 extern "C" {
-#include "../SDL_sysvideo.h"
-#include "../../video/windows/SDL_windowsopengl.h"
 #include "../../core/windows/SDL_windows.h"
 #include "../../events/SDL_events_c.h"
 #include "../../render/SDL_sysrender.h"
+#include "../../video/windows/SDL_windowsopengl.h"
 #include "../SDL_pixels_c.h"
-#include "SDL_winrtopengles.h"
+#include "../SDL_sysvideo.h"
 #include "SDL_winrtmessagebox.h"
+#include "SDL_winrtopengles.h"
 }
 
 #include "../../core/winrt/SDL_winrtapp_direct3d.h"
@@ -271,7 +271,7 @@ SDL_PixelFormat D3D11_DXGIFormatToSDLPixelFormat(DXGI_FORMAT dxgiFormat)
     }
 }
 #else
-extern "C" Uint32 D3D11_DXGIFormatToSDLPixelFormat(DXGI_FORMAT dxgiFormat);
+extern "C" SDL_PixelFormat D3D11_DXGIFormatToSDLPixelFormat(DXGI_FORMAT dxgiFormat);
 #endif
 
 static void WINRT_DXGIModeToSDLDisplayMode(const DXGI_MODE_DESC *dxgiMode, SDL_DisplayMode *sdlMode)
@@ -743,21 +743,21 @@ bool WINRT_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Properti
         window->w = (int)SDL_floorf(data->coreWindow->Bounds.Width);
         window->h = (int)SDL_floorf(data->coreWindow->Bounds.Height);
 #else
-        /* On Windows 10, we occasionally get control over window size.  For windowed
-           mode apps, try this.
+    /* On Windows 10, we occasionally get control over window size.  For windowed
+       mode apps, try this.
+    */
+    bool didSetSize = false;
+    if ((requestedFlags & SDL_WINDOW_FULLSCREEN) == 0) {
+        const Windows::Foundation::Size size((float)window->w, (float)window->h);
+        didSetSize = data->appView->TryResizeView(size);
+    }
+    if (!didSetSize) {
+        /* We either weren't able to set the window size, or a request for
+           fullscreen was made.  Get window-size info from the OS.
         */
-        bool didSetSize = false;
-        if ((requestedFlags & SDL_WINDOW_FULLSCREEN) == 0) {
-            const Windows::Foundation::Size size((float)window->w, (float)window->h);
-            didSetSize = data->appView->TryResizeView(size);
-        }
-        if (!didSetSize) {
-            /* We either weren't able to set the window size, or a request for
-               fullscreen was made.  Get window-size info from the OS.
-            */
-            window->w = (int)SDL_floorf(data->coreWindow->Bounds.Width);
-            window->h = (int)SDL_floorf(data->coreWindow->Bounds.Height);
-        }
+        window->w = (int)SDL_floorf(data->coreWindow->Bounds.Width);
+        window->h = (int)SDL_floorf(data->coreWindow->Bounds.Height);
+    }
 #endif
 
         WINRT_UpdateWindowFlags(
