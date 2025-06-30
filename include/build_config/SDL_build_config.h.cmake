@@ -551,5 +551,7 @@ typedef unsigned int uintptr_t;
 
 #cmakedefine __XBOXSERIES__ 1
 #cmakedefine SDL_PLATFORM_XBOXSERIES 1
+#cmakedefine SDL_VIDEO_DRIVER_KEYBOARD_WINRT 1
+#cmakedefine SDL_VIDEO_DRIVER_POINTER_WINRT 1
 
 #endif /* SDL_build_config_h_ */

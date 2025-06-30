@@ -50,14 +50,14 @@ static const GUID SDL_IID_IDXGIFactory2 = { 0x50c83a1c, 0xe072, 0x4c48, { 0x87, 
 
 // SDL includes
 extern "C" {
+#include "../SDL_sysvideo.h"
+#include "../../video/windows/SDL_windowsopengl.h"
 #include "../../core/windows/SDL_windows.h"
 #include "../../events/SDL_events_c.h"
 #include "../../render/SDL_sysrender.h"
-#include "../../video/windows/SDL_windowsopengl.h"
 #include "../SDL_pixels_c.h"
-#include "../SDL_sysvideo.h"
-#include "SDL_winrtmessagebox.h"
 #include "SDL_winrtopengles.h"
+#include "SDL_winrtmessagebox.h"
 }
 
 #include "../../core/winrt/SDL_winrtapp_direct3d.h"
