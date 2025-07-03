@@ -46,91 +46,91 @@
         return NULL;                                                \
     }
 
-#define CHECK_ANY_PASS_IN_PROGRESS(msg, retval)                                 \
-    if (                                                                        \
+#define CHECK_ANY_PASS_IN_PROGRESS(msg, retval)                                    \
+    if (                                                                           \
         ((CommandBufferCommonHeader *)command_buffer)->render_pass.in_progress ||  \
         ((CommandBufferCommonHeader *)command_buffer)->compute_pass.in_progress || \
         ((CommandBufferCommonHeader *)command_buffer)->copy_pass.in_progress) {    \
-        SDL_assert_release(!msg);                                               \
-        return retval;                                                          \
+        SDL_assert_release(!msg);                                                  \
+        return retval;                                                             \
     }
 
 #define CHECK_RENDERPASS                                     \
-    if (!((Pass *)render_pass)->in_progress) {                 \
+    if (!((Pass *)render_pass)->in_progress) {               \
         SDL_assert_release(!"Render pass not in progress!"); \
         return;                                              \
     }
 
-#define CHECK_GRAPHICS_PIPELINE_BOUND                                                       \
+#define CHECK_GRAPHICS_PIPELINE_BOUND                                                         \
     if (!((CommandBufferCommonHeader *)RENDERPASS_COMMAND_BUFFER)->graphics_pipeline_bound) { \
-        SDL_assert_release(!"Graphics pipeline not bound!");                                \
-        return;                                                                             \
+        SDL_assert_release(!"Graphics pipeline not bound!");                                  \
+        return;                                                                               \
     }
 
 #define CHECK_COMPUTEPASS                                     \
-    if (!((Pass *)compute_pass)->in_progress) {                 \
+    if (!((Pass *)compute_pass)->in_progress) {               \
         SDL_assert_release(!"Compute pass not in progress!"); \
         return;                                               \
     }
 
-#define CHECK_COMPUTE_PIPELINE_BOUND                                                        \
+#define CHECK_COMPUTE_PIPELINE_BOUND                                                          \
     if (!((CommandBufferCommonHeader *)COMPUTEPASS_COMMAND_BUFFER)->compute_pipeline_bound) { \
-        SDL_assert_release(!"Compute pipeline not bound!");                                 \
-        return;                                                                             \
+        SDL_assert_release(!"Compute pipeline not bound!");                                   \
+        return;                                                                               \
     }
 
 #define CHECK_COPYPASS                                     \
-    if (!((Pass *)copy_pass)->in_progress) {                 \
+    if (!((Pass *)copy_pass)->in_progress) {               \
         SDL_assert_release(!"Copy pass not in progress!"); \
         return;                                            \
     }
 
-#define CHECK_TEXTUREFORMAT_ENUM_INVALID(enumval, retval)     \
-    if (enumval <= SDL_GPU_TEXTUREFORMAT_INVALID || enumval >= SDL_GPU_TEXTUREFORMAT_MAX_ENUM_VALUE) {               \
-        SDL_assert_release(!"Invalid texture format enum!"); \
-        return retval;                                       \
+#define CHECK_TEXTUREFORMAT_ENUM_INVALID(enumval, retval)                                              \
+    if (enumval <= SDL_GPU_TEXTUREFORMAT_INVALID || enumval >= SDL_GPU_TEXTUREFORMAT_MAX_ENUM_VALUE) { \
+        SDL_assert_release(!"Invalid texture format enum!");                                           \
+        return retval;                                                                                 \
     }
 
-#define CHECK_VERTEXELEMENTFORMAT_ENUM_INVALID(enumval, retval)       \
-    if (enumval <= SDL_GPU_VERTEXELEMENTFORMAT_INVALID || enumval >= SDL_GPU_VERTEXELEMENTFORMAT_MAX_ENUM_VALUE) {  \
-        SDL_assert_release(!"Invalid vertex format enum!");          \
-        return retval;                                               \
+#define CHECK_VERTEXELEMENTFORMAT_ENUM_INVALID(enumval, retval)                                                    \
+    if (enumval <= SDL_GPU_VERTEXELEMENTFORMAT_INVALID || enumval >= SDL_GPU_VERTEXELEMENTFORMAT_MAX_ENUM_VALUE) { \
+        SDL_assert_release(!"Invalid vertex format enum!");                                                        \
+        return retval;                                                                                             \
     }
 
-#define CHECK_COMPAREOP_ENUM_INVALID(enumval, retval)                              \
+#define CHECK_COMPAREOP_ENUM_INVALID(enumval, retval)                                          \
     if (enumval <= SDL_GPU_COMPAREOP_INVALID || enumval >= SDL_GPU_COMPAREOP_MAX_ENUM_VALUE) { \
-        SDL_assert_release(!"Invalid compare op enum!");                          \
-        return retval;                                                            \
+        SDL_assert_release(!"Invalid compare op enum!");                                       \
+        return retval;                                                                         \
     }
 
-#define CHECK_STENCILOP_ENUM_INVALID(enumval, retval)                                \
+#define CHECK_STENCILOP_ENUM_INVALID(enumval, retval)                                          \
     if (enumval <= SDL_GPU_STENCILOP_INVALID || enumval >= SDL_GPU_STENCILOP_MAX_ENUM_VALUE) { \
-        SDL_assert_release(!"Invalid stencil op enum!");                            \
-        return retval;                                                              \
+        SDL_assert_release(!"Invalid stencil op enum!");                                       \
+        return retval;                                                                         \
     }
 
-#define CHECK_BLENDOP_ENUM_INVALID(enumval, retval)                              \
+#define CHECK_BLENDOP_ENUM_INVALID(enumval, retval)                                        \
     if (enumval <= SDL_GPU_BLENDOP_INVALID || enumval >= SDL_GPU_BLENDOP_MAX_ENUM_VALUE) { \
-        SDL_assert_release(!"Invalid blend op enum!");                          \
-        return retval;                                                          \
+        SDL_assert_release(!"Invalid blend op enum!");                                     \
+        return retval;                                                                     \
     }
 
-#define CHECK_BLENDFACTOR_ENUM_INVALID(enumval, retval)                                  \
+#define CHECK_BLENDFACTOR_ENUM_INVALID(enumval, retval)                                            \
     if (enumval <= SDL_GPU_BLENDFACTOR_INVALID || enumval >= SDL_GPU_BLENDFACTOR_MAX_ENUM_VALUE) { \
-        SDL_assert_release(!"Invalid blend factor enum!");                              \
-        return retval;                                                                  \
+        SDL_assert_release(!"Invalid blend factor enum!");                                         \
+        return retval;                                                                             \
     }
 
-#define CHECK_SWAPCHAINCOMPOSITION_ENUM_INVALID(enumval, retval)    \
-    if (enumval < 0 || enumval >= SDL_GPU_SWAPCHAINCOMPOSITION_MAX_ENUM_VALUE) {              \
-        SDL_assert_release(!"Invalid swapchain composition enum!"); \
-        return retval;                                              \
+#define CHECK_SWAPCHAINCOMPOSITION_ENUM_INVALID(enumval, retval)                 \
+    if (enumval < 0 || enumval >= SDL_GPU_SWAPCHAINCOMPOSITION_MAX_ENUM_VALUE) { \
+        SDL_assert_release(!"Invalid swapchain composition enum!");              \
+        return retval;                                                           \
     }
 
-#define CHECK_PRESENTMODE_ENUM_INVALID(enumval, retval)    \
-    if (enumval < 0 || enumval >= SDL_GPU_PRESENTMODE_MAX_ENUM_VALUE) {              \
-        SDL_assert_release(!"Invalid present mode enum!"); \
-        return retval;                                     \
+#define CHECK_PRESENTMODE_ENUM_INVALID(enumval, retval)                 \
+    if (enumval < 0 || enumval >= SDL_GPU_PRESENTMODE_MAX_ENUM_VALUE) { \
+        SDL_assert_release(!"Invalid present mode enum!");              \
+        return retval;                                                  \
     }
 
 #define COMMAND_BUFFER_DEVICE \
@@ -169,6 +169,9 @@ static const SDL_GPUBootstrap *backends[] = {
 #endif
 #ifdef SDL_GPU_D3D12
     &D3D12Driver,
+#endif
+#ifdef SDL_GPU_D3D11
+    &D3D11Driver,
 #endif
     NULL
 };
@@ -222,7 +225,7 @@ SDL_GPUGraphicsPipeline *SDL_GPU_FetchBlitPipeline(
         blit_pipeline_create_info.fragment_shader = blit_from_cube_shader;
     } else if (source_texture_type == SDL_GPU_TEXTURETYPE_CUBE_ARRAY) {
         blit_pipeline_create_info.fragment_shader = blit_from_cube_array_shader;
-    }  else if (source_texture_type == SDL_GPU_TEXTURETYPE_2D_ARRAY) {
+    } else if (source_texture_type == SDL_GPU_TEXTURETYPE_2D_ARRAY) {
         blit_pipeline_create_info.fragment_shader = blit_from_2d_array_shader;
     } else if (source_texture_type == SDL_GPU_TEXTURETYPE_3D) {
         blit_pipeline_create_info.fragment_shader = blit_from_3d_shader;
@@ -374,7 +377,7 @@ void SDL_GPU_BlitCommon(
 // Driver Functions
 
 #ifndef SDL_GPU_DISABLED
-static const SDL_GPUBootstrap * SDL_GPUSelectBackend(SDL_PropertiesID props)
+static const SDL_GPUBootstrap *SDL_GPUSelectBackend(SDL_PropertiesID props)
 {
     Uint32 i;
     SDL_GPUShaderFormat format_flags = 0;
@@ -559,7 +562,7 @@ int SDL_GetNumGPUDrivers(void)
 #endif
 }
 
-const char * SDL_GetGPUDriver(int index)
+const char *SDL_GetGPUDriver(int index)
 {
     if (index < 0 || index >= SDL_GetNumGPUDrivers()) {
         SDL_InvalidParamError("index");
@@ -572,7 +575,7 @@ const char * SDL_GetGPUDriver(int index)
 #endif
 }
 
-const char * SDL_GetGPUDeviceDriver(SDL_GPUDevice *device)
+const char *SDL_GetGPUDeviceDriver(SDL_GPUDevice *device)
 {
     CHECK_DEVICE_MAGIC(device, NULL);
 
@@ -2698,19 +2701,7 @@ bool SDL_SetGPUAllowedFramesInFlight(
     SDL_GPUDevice *device,
     Uint32 allowed_frames_in_flight)
 {
-    CHECK_DEVICE_MAGIC(device, false);
-
-    if (device->debug_mode) {
-        if (allowed_frames_in_flight < 1 || allowed_frames_in_flight > 3)
-        {
-            SDL_assert_release(!"allowed_frames_in_flight value must be between 1 and 3!");
-        }
-    }
-
-    allowed_frames_in_flight = SDL_clamp(allowed_frames_in_flight, 1, 3);
-    return device->SetAllowedFramesInFlight(
-        device->driverData,
-        allowed_frames_in_flight);
+    return false;
 }
 
 SDL_GPUTextureFormat SDL_GetGPUSwapchainTextureFormat(
@@ -2759,7 +2750,7 @@ bool SDL_AcquireGPUSwapchainTexture(
         swapchain_texture_width,
         swapchain_texture_height);
 
-    if (*swapchain_texture != NULL){
+    if (*swapchain_texture != NULL) {
         commandBufferHeader->swapchain_texture_acquired = true;
     }
 
@@ -2770,15 +2761,7 @@ bool SDL_WaitForGPUSwapchain(
     SDL_GPUDevice *device,
     SDL_Window *window)
 {
-    CHECK_DEVICE_MAGIC(device, false);
-
-    if (window == NULL) {
-        return SDL_InvalidParamError("window");
-    }
-
-    return device->WaitForSwapchain(
-        device->driverData,
-        window);
+    return false;
 }
 
 bool SDL_WaitAndAcquireGPUSwapchainTexture(
@@ -2788,35 +2771,7 @@ bool SDL_WaitAndAcquireGPUSwapchainTexture(
     Uint32 *swapchain_texture_width,
     Uint32 *swapchain_texture_height)
 {
-    CommandBufferCommonHeader *commandBufferHeader = (CommandBufferCommonHeader *)command_buffer;
-
-    if (command_buffer == NULL) {
-        return SDL_InvalidParamError("command_buffer");
-    }
-    if (window == NULL) {
-        return SDL_InvalidParamError("window");
-    }
-    if (swapchain_texture == NULL) {
-        return SDL_InvalidParamError("swapchain_texture");
-    }
-
-    if (COMMAND_BUFFER_DEVICE->debug_mode) {
-        CHECK_COMMAND_BUFFER_RETURN_FALSE
-        CHECK_ANY_PASS_IN_PROGRESS("Cannot acquire a swapchain texture during a pass!", false)
-    }
-
-    bool result = COMMAND_BUFFER_DEVICE->WaitAndAcquireSwapchainTexture(
-        command_buffer,
-        window,
-        swapchain_texture,
-        swapchain_texture_width,
-        swapchain_texture_height);
-
-    if (*swapchain_texture != NULL){
-        commandBufferHeader->swapchain_texture_acquired = true;
-    }
-
-    return result;
+    return false;
 }
 
 bool SDL_SubmitGPUCommandBuffer(

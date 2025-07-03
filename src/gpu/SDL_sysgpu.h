@@ -79,6 +79,8 @@ typedef struct BlitPipelineCacheEntry
 #define SDL_GPU_SWAPCHAINCOMPOSITION_MAX_ENUM_VALUE (SDL_GPU_SWAPCHAINCOMPOSITION_HDR10_ST2084 + 1)
 #define SDL_GPU_PRESENTMODE_MAX_ENUM_VALUE          (SDL_GPU_PRESENTMODE_MAILBOX + 1)
 
+#define LEGACY_MAX_TOTAL_COMPUTE_WRITE_RESOURCES 8
+
 static inline Sint32 Texture_GetBlockWidth(
     SDL_GPUTextureFormat format)
 {
@@ -960,12 +962,9 @@ struct SDL_GPUDevice
     ASSIGN_DRIVER_FUNC(ClaimWindow, name)                   \
     ASSIGN_DRIVER_FUNC(ReleaseWindow, name)                 \
     ASSIGN_DRIVER_FUNC(SetSwapchainParameters, name)        \
-    ASSIGN_DRIVER_FUNC(SetAllowedFramesInFlight, name)      \
     ASSIGN_DRIVER_FUNC(GetSwapchainTextureFormat, name)     \
     ASSIGN_DRIVER_FUNC(AcquireCommandBuffer, name)          \
     ASSIGN_DRIVER_FUNC(AcquireSwapchainTexture, name)       \
-    ASSIGN_DRIVER_FUNC(WaitForSwapchain, name)              \
-    ASSIGN_DRIVER_FUNC(WaitAndAcquireSwapchainTexture, name)\
     ASSIGN_DRIVER_FUNC(Submit, name)                        \
     ASSIGN_DRIVER_FUNC(SubmitAndAcquireFence, name)         \
     ASSIGN_DRIVER_FUNC(Cancel, name)                        \
@@ -989,6 +988,7 @@ extern "C" {
 #endif
 
 extern SDL_GPUBootstrap VulkanDriver;
+extern SDL_GPUBootstrap D3D11Driver;
 extern SDL_GPUBootstrap D3D12Driver;
 extern SDL_GPUBootstrap MetalDriver;
 extern SDL_GPUBootstrap PrivateGPUDriver;
