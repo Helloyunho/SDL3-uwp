@@ -30,6 +30,7 @@
 #include <d3d11.h>
 #include <d3d11_1.h>
 #include <dxgi.h>
+#include <dxgi1_2.h>
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 
@@ -40,15 +41,16 @@
 #endif
 
 // Function Pointer Signatures
-typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY1)(const GUID *riid, void **ppFactory);
+typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT flags, const GUID *riid, void **ppFactory);
 typedef HRESULT(WINAPI *PFN_DXGI_GET_DEBUG_INTERFACE)(const GUID *riid, void **ppDebug);
 
 // IIDs (from https://www.magnumdb.com/)
-static const IID D3D_IID_IDXGIFactory1 = { 0x770aae78, 0xf26f, 0x4dba, { 0xa8, 0x29, 0x25, 0x3c, 0x83, 0xd1, 0xb3, 0x87 } };
+static const IID D3D_IID_IDXGIFactory2 = { 0x50c83a1c, 0xe072, 0x4c48, { 0x87, 0xb0, 0x36, 0x30, 0xfa, 0x36, 0xa6, 0xd0 } };
 static const IID D3D_IID_IDXGIFactory4 = { 0x1bc6ea02, 0xef36, 0x464f, { 0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a } };
 static const IID D3D_IID_IDXGIFactory5 = { 0x7632e1f5, 0xee65, 0x4dca, { 0x87, 0xfd, 0x84, 0xcd, 0x75, 0xf8, 0x83, 0x8d } };
 static const IID D3D_IID_IDXGIFactory6 = { 0xc1b6694f, 0xff09, 0x44a9, { 0xb0, 0x3c, 0x77, 0x90, 0x0a, 0x0a, 0x1d, 0x17 } };
-static const IID D3D_IID_IDXGIAdapter1 = { 0x29038f61, 0x3839, 0x4626, { 0x91, 0xfd, 0x08, 0x68, 0x79, 0x01, 0x1a, 0x05 } };
+static const IID D3D_IID_IDXGIAdapter2 = { 0x0aa1ae0a, 0xfa0e, 0x4b84, { 0x86, 0x44, 0xe0, 0x5f, 0xf8, 0xe5, 0xac, 0xb5 } };
+static const IID D3D_IID_IDXGISwapChain1 = { 0x790a45f7, 0x0d42, 0x4876, { 0x98, 0x3a, 0x0a, 0x55, 0xcf, 0xe6, 0xf4, 0xaa } };
 static const IID D3D_IID_IDXGISwapChain3 = { 0x94d99bdb, 0xf1f8, 0x4ab0, { 0xb2, 0x36, 0x7d, 0xa0, 0x17, 0x0e, 0xda, 0xb1 } };
 static const IID D3D_IID_ID3D11Texture2D = { 0x6f15aaf2, 0xd208, 0x4e89, { 0x9a, 0xb4, 0x48, 0x95, 0x35, 0xd3, 0x4f, 0x9c } };
 static const IID D3D_IID_ID3DUserDefinedAnnotation = { 0xb2daad8b, 0x03d4, 0x4dbf, { 0x95, 0xeb, 0x32, 0xab, 0x4b, 0x63, 0xd0, 0xab } };
@@ -62,7 +64,7 @@ static const GUID D3D_IID_D3DDebugObjectName = { 0x429b8c22, 0x9188, 0x4b0c, { 0
 static const GUID D3D_IID_DXGI_DEBUG_ALL = { 0xe48ae283, 0xda80, 0x490b, { 0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf, 0xda, 0x08 } };
 
 #define D3D11_CREATE_DEVICE_FUNC      "D3D11CreateDevice"
-#define CREATE_DXGI_FACTORY1_FUNC     "CreateDXGIFactory1"
+#define CREATE_DXGI_FACTORY2_FUNC     "CreateDXGIFactory2"
 #define DXGI_GET_DEBUG_INTERFACE_FUNC "DXGIGetDebugInterface"
 #define WINDOW_PROPERTY_DATA          "SDL_GPUD3D11WindowPropertyData"
 
@@ -499,7 +501,7 @@ typedef struct D3D11Fence
 typedef struct D3D11WindowData
 {
     SDL_Window *window;
-    IDXGISwapChain *swapchain;
+    IDXGISwapChain1 *swapchain;
     D3D11Texture texture;
     D3D11TextureContainer textureContainer;
     SDL_GPUPresentMode presentMode;
@@ -756,8 +758,8 @@ struct D3D11Renderer
 {
     ID3D11Device1 *device;
     ID3D11DeviceContext *immediateContext;
-    IDXGIFactory1 *factory;
-    IDXGIAdapter1 *adapter;
+    IDXGIFactory2 *factory;
+    IDXGIAdapter2 *adapter;
     IDXGIDebug *dxgiDebug;
 #ifdef HAVE_IDXGIINFOQUEUE
     IDXGIInfoQueue *dxgiInfoQueue;
@@ -1024,8 +1026,8 @@ static void D3D11_DestroyDevice(
     // Release the device and associated objects
     ID3D11DeviceContext_Release(renderer->immediateContext);
     ID3D11Device_Release(renderer->device);
-    IDXGIAdapter_Release(renderer->adapter);
-    IDXGIFactory_Release(renderer->factory);
+    IDXGIAdapter2_Release(renderer->adapter);
+    IDXGIFactory2_Release(renderer->factory);
 
     // Report leaks and clean up debug objects
     if (renderer->dxgiDebug) {
@@ -5054,7 +5056,7 @@ static bool D3D11_INTERNAL_OnWindowResize(void *userdata, SDL_Event *e)
 
 static bool D3D11_INTERNAL_InitializeSwapchainTexture(
     D3D11Renderer *renderer,
-    IDXGISwapChain *swapchain,
+    IDXGISwapChain1 *swapchain,
     DXGI_FORMAT swapchainFormat,
     DXGI_FORMAT rtvFormat,
     D3D11Texture *pTexture)
@@ -5068,7 +5070,7 @@ static bool D3D11_INTERNAL_InitializeSwapchainTexture(
     SDL_zerop(pTexture);
 
     // Grab the buffer from the swapchain
-    res = IDXGISwapChain_GetBuffer(
+    res = IDXGISwapChain1_GetBuffer(
         swapchain,
         0,
         &D3D_IID_ID3D11Texture2D,
@@ -5080,7 +5082,7 @@ static bool D3D11_INTERNAL_InitializeSwapchainTexture(
     rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
     rtvDesc.Texture2D.MipSlice = 0;
 
-    res = ID3D11Device_CreateRenderTargetView(
+    res = ID3D11Device1_CreateRenderTargetView(
         renderer->device,
         (ID3D11Resource *)swapchainTexture,
         &rtvDesc,
@@ -5119,57 +5121,87 @@ static bool D3D11_INTERNAL_CreateSwapchain(
     SDL_GPUSwapchainComposition swapchainComposition,
     SDL_GPUPresentMode presentMode)
 {
-    HWND dxgiHandle;
+    int width, height;
     Uint32 i;
-    DXGI_SWAP_CHAIN_DESC swapchainDesc;
+    DXGI_SWAP_CHAIN_DESC1 swapchainDesc;
     DXGI_FORMAT swapchainFormat;
-    IDXGIFactory1 *pParent;
-    IDXGISwapChain *swapchain;
+    IDXGIFactory2 *pParent;
+    IDXGISwapChain1 *swapchain;
     IDXGISwapChain3 *swapchain3;
     HRESULT res;
 
-    // Get the DXGI handle
-#ifdef _WIN32
-    dxgiHandle = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(windowData->window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
-#else
-    dxgiHandle = (HWND)windowData->window;
-#endif
+    SDL_SyncWindow(windowData->window);
+    SDL_GetWindowSizeInPixels(windowData->window, &width, &height);
 
     swapchainFormat = SwapchainCompositionToTextureFormat[swapchainComposition];
 
+    SDL_zero(swapchainDesc);
+
     // Initialize the swapchain buffer descriptor
-    swapchainDesc.BufferDesc.Width = 0;
-    swapchainDesc.BufferDesc.Height = 0;
-    swapchainDesc.BufferDesc.RefreshRate.Numerator = 0;
-    swapchainDesc.BufferDesc.RefreshRate.Denominator = 0;
-    swapchainDesc.BufferDesc.Format = swapchainFormat;
-    swapchainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-    swapchainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+    swapchainDesc.Width = width;
+    swapchainDesc.Height = height;
+    swapchainDesc.Stereo = FALSE;
+    swapchainDesc.Format = swapchainFormat;
+    swapchainDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
     // Initialize the rest of the swapchain descriptor
     swapchainDesc.SampleDesc.Count = 1;
     swapchainDesc.SampleDesc.Quality = 0;
     swapchainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapchainDesc.BufferCount = 2;
-    swapchainDesc.OutputWindow = dxgiHandle;
-    swapchainDesc.Windowed = 1;
 
-    if (renderer->supportsTearing) {
-        swapchainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-        // We know this is supported because tearing support implies DXGI 1.5+
-        swapchainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    } else {
-        swapchainDesc.Flags = 0;
-        swapchainDesc.SwapEffect = (renderer->supportsFlipDiscard ? DXGI_SWAP_EFFECT_FLIP_DISCARD : DXGI_SWAP_EFFECT_DISCARD);
-    }
+    swapchainDesc.Flags = 0;
+    swapchainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
     // Create the swapchain!
-    res = IDXGIFactory1_CreateSwapChain(
-        (IDXGIFactory1 *)renderer->factory,
-        (IUnknown *)renderer->device,
-        &swapchainDesc,
-        &swapchain);
-    CHECK_D3D11_ERROR_AND_RETURN("Could not create swapchain", false);
+    IUnknown *coreWindow = (IUnknown *)SDL_GetPointerProperty(SDL_GetWindowProperties(windowData->window), SDL_PROP_WINDOW_WINRT_WINDOW_POINTER, NULL);
+    if (coreWindow) {
+        res = IDXGIFactory2_CreateSwapChainForCoreWindow(
+            renderer->factory,
+            renderer->device,
+            coreWindow,
+            &swapchainDesc,
+            NULL,
+            &swapchain);
+        CHECK_D3D11_ERROR_AND_RETURN("Could not create swapchain", false);
+    } else {
+        HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(windowData->window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+        res = IDXGIFactory2_CreateSwapChainForHwnd(
+            renderer->factory,
+            renderer->device,
+            hwnd,
+            &swapchainDesc,
+            NULL,
+            NULL,
+            &swapchain);
+        CHECK_D3D11_ERROR_AND_RETURN("Could not create swapchain", false);
+
+        res = IDXGISwapChain1_GetParent(
+            swapchain,
+            &D3D_IID_IDXGIFactory2,
+            (void **)&pParent);
+        if (FAILED(res)) {
+            SDL_LogWarn(
+                SDL_LOG_CATEGORY_GPU,
+                "Could not get swapchain parent! Error Code: " HRESULT_FMT,
+                res);
+        } else {
+            // Disable DXGI window crap
+            res = IDXGIFactory2_MakeWindowAssociation(
+                pParent,
+                hwnd,
+                DXGI_MWA_NO_WINDOW_CHANGES);
+            if (FAILED(res)) {
+                SDL_LogWarn(
+                    SDL_LOG_CATEGORY_GPU,
+                    "MakeWindowAssociation failed! Error Code: " HRESULT_FMT,
+                    res);
+            }
+
+            // We're done with the parent now
+            IDXGIFactory2_Release(pParent);
+        }
+    }
 
     /*
      * The swapchain's parent is a separate factory from the factory that
@@ -5178,31 +5210,6 @@ static bool D3D11_INTERNAL_CreateSwapchain(
      * will silently fail and doesn't even verify arguments or return errors.
      * See https://gamedev.net/forums/topic/634235-dxgidisabling-altenter/4999955/
      */
-    res = IDXGISwapChain_GetParent(
-        swapchain,
-        &D3D_IID_IDXGIFactory1,
-        (void **)&pParent);
-    if (FAILED(res)) {
-        SDL_LogWarn(
-            SDL_LOG_CATEGORY_GPU,
-            "Could not get swapchain parent! Error Code: " HRESULT_FMT,
-            res);
-    } else {
-        // Disable DXGI window crap
-        res = IDXGIFactory1_MakeWindowAssociation(
-            pParent,
-            dxgiHandle,
-            DXGI_MWA_NO_WINDOW_CHANGES);
-        if (FAILED(res)) {
-            SDL_LogWarn(
-                SDL_LOG_CATEGORY_GPU,
-                "MakeWindowAssociation failed! Error Code: " HRESULT_FMT,
-                res);
-        }
-
-        // We're done with the parent now
-        IDXGIFactory1_Release(pParent);
-    }
 
     if (swapchainComposition != SDL_GPU_SWAPCHAINCOMPOSITION_SDR) {
         // Set the color space, support already verified if we hit this block
@@ -5239,11 +5246,11 @@ static bool D3D11_INTERNAL_CreateSwapchain(
             swapchainFormat,
             (swapchainComposition == SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR) ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : windowData->swapchainFormat,
             &windowData->texture)) {
-        IDXGISwapChain_Release(swapchain);
+        IDXGISwapChain1_Release(swapchain);
         return false;
     }
 
-    res = IDXGISwapChain_GetDesc(swapchain, &swapchainDesc);
+    res = IDXGISwapChain1_GetDesc1(swapchain, &swapchainDesc);
     CHECK_D3D11_ERROR_AND_RETURN("Failed to get swapchain descriptor!", false);
 
     // Initialize dummy container, width/height will be filled out in AcquireSwapchainTexture
@@ -5261,14 +5268,14 @@ static bool D3D11_INTERNAL_CreateSwapchain(
     windowData->textureContainer.header.info.num_levels = 1;
     windowData->textureContainer.header.info.sample_count = SDL_GPU_SAMPLECOUNT_1;
     windowData->textureContainer.header.info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-    windowData->textureContainer.header.info.width = swapchainDesc.BufferDesc.Width;
-    windowData->textureContainer.header.info.height = swapchainDesc.BufferDesc.Height;
+    windowData->textureContainer.header.info.width = width;
+    windowData->textureContainer.header.info.height = height;
 
     windowData->texture.container = &windowData->textureContainer;
     windowData->texture.containerIndex = 0;
 
-    windowData->width = swapchainDesc.BufferDesc.Width;
-    windowData->height = swapchainDesc.BufferDesc.Height;
+    windowData->width = width;
+    windowData->height = height;
     return true;
 }
 
@@ -5284,7 +5291,7 @@ static bool D3D11_INTERNAL_ResizeSwapchain(
     SDL_free(windowData->texture.subresources);
 
     // Resize the swapchain
-    HRESULT res = IDXGISwapChain_ResizeBuffers(
+    HRESULT res = IDXGISwapChain1_ResizeBuffers(
         windowData->swapchain,
         0,                   // Keep buffer count the same
         0,                   // Use client window width
@@ -5301,14 +5308,14 @@ static bool D3D11_INTERNAL_ResizeSwapchain(
         (windowData->swapchainComposition == SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR) ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : windowData->swapchainFormat,
         &windowData->texture);
 
-    DXGI_SWAP_CHAIN_DESC swapchainDesc;
-    res = IDXGISwapChain_GetDesc(windowData->swapchain, &swapchainDesc);
+    DXGI_SWAP_CHAIN_DESC1 swapchainDesc;
+    res = IDXGISwapChain1_GetDesc1(windowData->swapchain, &swapchainDesc);
     CHECK_D3D11_ERROR_AND_RETURN("Failed to get swapchain descriptor!", false);
 
-    windowData->textureContainer.header.info.width = swapchainDesc.BufferDesc.Width;
-    windowData->textureContainer.header.info.height = swapchainDesc.BufferDesc.Height;
-    windowData->width = swapchainDesc.BufferDesc.Width;
-    windowData->height = swapchainDesc.BufferDesc.Height;
+    windowData->textureContainer.header.info.width = swapchainDesc.Width;
+    windowData->textureContainer.header.info.height = swapchainDesc.Height;
+    windowData->width = swapchainDesc.Width;
+    windowData->height = swapchainDesc.Height;
     windowData->needsSwapchainRecreate = !result;
     return result;
 }
@@ -5437,7 +5444,7 @@ static void D3D11_INTERNAL_DestroySwapchain(
     SDL_free(windowData->texture.subresources[0].colorTargetViews);
     SDL_free(windowData->texture.subresources);
     SDL_free(windowData->textureContainer.textures);
-    IDXGISwapChain_Release(windowData->swapchain);
+    IDXGISwapChain1_Release(windowData->swapchain);
 
     // DXGI will crash if we don't flush deferred swapchain destruction
     SDL_LockMutex(renderer->contextLock);
@@ -5555,7 +5562,7 @@ static bool D3D11_AcquireSwapchainTexture(
     }
 
     // Set the handle on the windowData texture data.
-    res = IDXGISwapChain_GetBuffer(
+    res = IDXGISwapChain1_GetBuffer(
         windowData->swapchain,
         0,
         &D3D_IID_ID3D11Texture2D,
@@ -5726,7 +5733,7 @@ static bool D3D11_Submit(
             presentFlags = DXGI_PRESENT_ALLOW_TEARING;
         }
 
-        res = IDXGISwapChain_Present(
+        res = IDXGISwapChain1_Present(
             windowData->swapchain,
             syncInterval,
             presentFlags);
@@ -6192,7 +6199,7 @@ static void D3D11_INTERNAL_DestroyBlitPipelines(
 static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SDL_PropertiesID props)
 {
     D3D11Renderer *renderer;
-    PFN_CREATE_DXGI_FACTORY1 CreateDxgiFactoryFunc;
+    PFN_CREATE_DXGI_FACTORY2 CreateDxgiFactoryFunc;
     PFN_D3D11_CREATE_DEVICE D3D11CreateDeviceFunc;
     D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_11_0 };
     IDXGIFactory4 *factory4;
@@ -6206,20 +6213,20 @@ static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SD
     // Allocate and zero out the renderer
     renderer = (D3D11Renderer *)SDL_calloc(1, sizeof(D3D11Renderer));
 
-    // Load the CreateDXGIFactory1 function
-    CreateDxgiFactoryFunc = (PFN_CREATE_DXGI_FACTORY1)CreateDXGIFactory1;
+    // Load the CreateDXGIFactory2 function
+    CreateDxgiFactoryFunc = (PFN_CREATE_DXGI_FACTORY2)CreateDXGIFactory2;
     if (CreateDxgiFactoryFunc == NULL) {
-        SET_STRING_ERROR_AND_RETURN("Could not load function: " CREATE_DXGI_FACTORY1_FUNC, NULL)
+        SET_STRING_ERROR_AND_RETURN("Could not load function: " CREATE_DXGI_FACTORY2_FUNC, NULL)
     }
 
     // Create the DXGI factory
-    res = CreateDxgiFactoryFunc(
-        &D3D_IID_IDXGIFactory1,
-        (void **)&renderer->factory);
-    CHECK_D3D11_ERROR_AND_RETURN("Could not create DXGIFactory", NULL);
+    res = CreateDxgiFactoryFunc(0,
+                                &D3D_IID_IDXGIFactory2,
+                                (void **)&renderer->factory);
+    CHECK_D3D11_ERROR_AND_RETURN("Could not create DXGIFactory2", NULL);
 
     // Check for flip-model discard support (supported on Windows 10+)
-    res = IDXGIFactory1_QueryInterface(
+    res = IDXGIFactory2_QueryInterface(
         renderer->factory,
         &D3D_IID_IDXGIFactory4,
         (void **)&factory4);
@@ -6229,7 +6236,7 @@ static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SD
     }
 
     // Check for explicit tearing support
-    res = IDXGIFactory1_QueryInterface(
+    res = IDXGIFactory2_QueryInterface(
         renderer->factory,
         &D3D_IID_IDXGIFactory5,
         (void **)&factory5);
@@ -6246,7 +6253,7 @@ static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SD
     }
 
     // Select the appropriate device for rendering
-    res = IDXGIAdapter1_QueryInterface(
+    res = IDXGIFactory2_QueryInterface(
         renderer->factory,
         &D3D_IID_IDXGIFactory6,
         (void **)&factory6);
@@ -6255,18 +6262,18 @@ static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SD
             factory6,
             0,
             preferLowPower ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-            &D3D_IID_IDXGIAdapter1,
+            &D3D_IID_IDXGIAdapter2,
             (void **)&renderer->adapter);
         IDXGIFactory6_Release(factory6);
     } else {
-        IDXGIFactory1_EnumAdapters1(
+        IDXGIFactory2_EnumAdapters1(
             renderer->factory,
             0,
             &renderer->adapter);
     }
 
     // Get information about the selected adapter. Used for logging info.
-    IDXGIAdapter1_GetDesc1(renderer->adapter, &adapterDesc);
+    IDXGIAdapter2_GetDesc1(renderer->adapter, &adapterDesc);
 
     // Initialize the DXGI debug layer, if applicable
     if (debugMode) {
@@ -6289,7 +6296,7 @@ static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SD
     ID3D11Device *d3d11Device;
 tryCreateDevice:
     res = D3D11CreateDeviceFunc(
-        (IDXGIAdapter *)renderer->adapter,
+        renderer->adapter,
         D3D_DRIVER_TYPE_UNKNOWN, // Must be UNKNOWN if adapter is non-null according to spec
         NULL,
         flags,
