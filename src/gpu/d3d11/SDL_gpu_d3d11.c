@@ -5584,6 +5584,21 @@ static bool D3D11_AcquireSwapchainTexture(
     return true;
 }
 
+static bool D3D11_WaitAndAcquireSwapchainTexture(
+    SDL_GPUCommandBuffer *command_buffer,
+    SDL_Window *window,
+    SDL_GPUTexture **swapchain_texture,
+    Uint32 *swapchain_texture_width,
+    Uint32 *swapchain_texture_height)
+{
+    return D3D11_AcquireSwapchainTexture(
+        command_buffer,
+        window,
+        swapchain_texture,
+        swapchain_texture_width,
+        swapchain_texture_height);
+}
+
 static SDL_GPUTextureFormat D3D11_GetSwapchainTextureFormat(
     SDL_GPURenderer *driverData,
     SDL_Window *window)
@@ -6194,6 +6209,30 @@ static void D3D11_INTERNAL_DestroyBlitPipelines(
     for (int i = 0; i < SDL_arraysize(renderer->blitPipelines); i += 1) {
         D3D11_ReleaseGraphicsPipeline(driverData, renderer->blitPipelines[i].pipeline);
     }
+}
+
+static bool D3D11_WaitForSwapchain(
+    SDL_GPURenderer *driverData,
+    SDL_Window *window)
+{
+    D3D11Renderer *renderer = (D3D11Renderer *)driverData;
+    D3D11WindowData *windowData = D3D11_INTERNAL_FetchWindowData(window);
+
+    if (windowData == NULL) {
+        SET_STRING_ERROR_AND_RETURN("Cannot wait for a swapchain from an unclaimed window!", false);
+    }
+
+    if (windowData->inFlightFences[windowData->frameCounter] != NULL) {
+        if (!D3D11_WaitForFences(
+                driverData,
+                true,
+                &windowData->inFlightFences[windowData->frameCounter],
+                1)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SDL_PropertiesID props)
