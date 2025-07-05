@@ -256,7 +256,7 @@ char *WIN_LookupAudioDeviceName(const WCHAR *name, const GUID *guid)
     char *result = NULL;
 
     if (WIN_IsEqualGUID(guid, &nullguid)) {
-        return WIN_StringToUTF8(name); // No GUID, go with what we've got.
+        return WIN_StringToUTF8W(name); // No GUID, go with what we've got.
     }
 
     ptr = (const unsigned char *)guid;
@@ -265,37 +265,37 @@ char *WIN_LookupAudioDeviceName(const WCHAR *name, const GUID *guid)
                        ptr[3], ptr[2], ptr[1], ptr[0], ptr[5], ptr[4], ptr[7], ptr[6],
                        ptr[8], ptr[9], ptr[10], ptr[11], ptr[12], ptr[13], ptr[14], ptr[15]);
 
-    strw = WIN_UTF8ToString(keystr);
+    strw = WIN_UTF8ToStringW(keystr);
     rc = (RegOpenKeyExW(HKEY_LOCAL_MACHINE, strw, 0, KEY_QUERY_VALUE, &hkey) == ERROR_SUCCESS);
     SDL_free(strw);
     if (!rc) {
-        return WIN_StringToUTF8(name); // oh well.
+        return WIN_StringToUTF8W(name); // oh well.
     }
 
     rc = (RegQueryValueExW(hkey, L"Name", NULL, NULL, NULL, &len) == ERROR_SUCCESS);
     if (!rc) {
         RegCloseKey(hkey);
-        return WIN_StringToUTF8(name); // oh well.
+        return WIN_StringToUTF8W(name); // oh well.
     }
 
     strw = (WCHAR *)SDL_malloc(len + sizeof(WCHAR));
     if (!strw) {
         RegCloseKey(hkey);
-        return WIN_StringToUTF8(name); // oh well.
+        return WIN_StringToUTF8W(name); // oh well.
     }
 
     rc = (RegQueryValueExW(hkey, L"Name", NULL, NULL, (LPBYTE)strw, &len) == ERROR_SUCCESS);
     RegCloseKey(hkey);
     if (!rc) {
         SDL_free(strw);
-        return WIN_StringToUTF8(name); // oh well.
+        return WIN_StringToUTF8W(name); // oh well.
     }
 
     strw[len / 2] = 0; // make sure it's null-terminated.
 
-    result = WIN_StringToUTF8(strw);
+    result = WIN_StringToUTF8W(strw);
     SDL_free(strw);
-    return result ? result : WIN_StringToUTF8(name);
+    return result ? result : WIN_StringToUTF8W(name);
 #endif
 }
 
@@ -325,10 +325,10 @@ void WIN_RectToRECT(const SDL_Rect *sdlrect, RECT *winrect)
     winrect->bottom = sdlrect->y + sdlrect->h - 1;
 }
 
-BOOL WIN_IsRectEmpty(const RECT *rect)
+bool WIN_WindowRectValid(const RECT *rect)
 {
-    // Calculating this manually because Xbox does not support Win32 IsRectEmpty.
-    return (rect->right <= rect->left) || (rect->bottom <= rect->top);
+    // A window can be resized to zero height, but not zero width
+    return (rect->right > 0);
 }
 
 // Some GUIDs we need to know without linking to libraries that aren't available before Vista.

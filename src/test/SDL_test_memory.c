@@ -95,7 +95,7 @@ static unsigned int get_allocation_bucket(void *mem)
     return index;
 }
 
-static SDL_tracked_allocation* SDL_GetTrackedAllocation(void *mem)
+static SDL_tracked_allocation *SDL_GetTrackedAllocation(void *mem)
 {
     SDL_tracked_allocation *entry;
     LOCK_ALLOCATOR();
@@ -216,9 +216,9 @@ static void SDL_UntrackAllocation(void *mem)
     UNLOCK_ALLOCATOR();
 }
 
-static void rand_fill_memory(void* ptr, size_t start, size_t end)
+static void rand_fill_memory(void *ptr, size_t start, size_t end)
 {
-    Uint8* mem = (Uint8*) ptr;
+    Uint8 *mem = (Uint8 *)ptr;
     size_t i;
 
     if (!s_randfill_allocations)
@@ -454,4 +454,5 @@ void SDLTest_LogAllocations(void)
 #undef ADD_LINE
 
     SDL_Log("%s", message);
+    SDL_free_orig(message);
 }

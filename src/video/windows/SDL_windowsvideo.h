@@ -28,8 +28,10 @@
 #include "../SDL_sysvideo.h"
 
 #ifdef HAVE_DXGI_H
+#ifndef __cplusplus
 #define CINTERFACE
 #define COBJMACROS
+#endif
 #include <dxgi.h>
 #endif
 
@@ -308,6 +310,8 @@ typedef enum PROCESS_DPI_AWARENESS
 #include <shellscalingapi.h>
 #endif
 
+typedef struct ITaskbarList3 ITaskbarList3;
+
 #ifndef _DPI_AWARENESS_CONTEXTS_
 
 typedef enum DPI_AWARENESS
@@ -374,6 +378,45 @@ typedef struct tagINPUTCONTEXT2
 } INPUTCONTEXT2, *PINPUTCONTEXT2, NEAR *NPINPUTCONTEXT2, FAR *LPINPUTCONTEXT2;
 #endif
 
+// Corner rounding support  (Win 11+)
+#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
+#define DWMWA_WINDOW_CORNER_PREFERENCE 33
+#endif
+typedef enum {
+    DWMWCP_DEFAULT = 0,
+    DWMWCP_DONOTROUND = 1,
+    DWMWCP_ROUND = 2,
+    DWMWCP_ROUNDSMALL = 3
+} DWM_WINDOW_CORNER_PREFERENCE;
+
+// Border Color support (Win 11+)
+#ifndef DWMWA_BORDER_COLOR
+#define DWMWA_BORDER_COLOR 34
+#endif
+
+#ifndef DWMWA_COLOR_DEFAULT
+#define DWMWA_COLOR_DEFAULT 0xFFFFFFFF
+#endif
+
+#ifndef DWMWA_COLOR_NONE
+#define DWMWA_COLOR_NONE 0xFFFFFFFE
+#endif
+
+// Transparent window support
+#ifndef DWM_BB_ENABLE
+#define DWM_BB_ENABLE 0x00000001
+#endif
+#ifndef DWM_BB_BLURREGION
+#define DWM_BB_BLURREGION 0x00000002
+#endif
+typedef struct
+{
+    DWORD flags;
+    BOOL enable;
+    HRGN blur_region;
+    BOOL transition_on_maxed;
+} DWM_BLURBEHIND;
+
 // Private display data
 
 struct SDL_VideoData
@@ -405,8 +448,8 @@ struct SDL_VideoData
     BOOL (WINAPI *AreDpiAwarenessContextsEqual)(DPI_AWARENESS_CONTEXT, DPI_AWARENESS_CONTEXT);
     BOOL (WINAPI *IsValidDpiAwarenessContext)(DPI_AWARENESS_CONTEXT);
     // DisplayConfig functions
-    LONG (WINAPI *GetDisplayConfigBufferSizes)( UINT32, UINT32*, UINT32* );
-    LONG (WINAPI *QueryDisplayConfig)( UINT32, UINT32*, DISPLAYCONFIG_PATH_INFO*, UINT32*, DISPLAYCONFIG_MODE_INFO*, DISPLAYCONFIG_TOPOLOGY_ID*);
+    LONG (WINAPI *GetDisplayConfigBufferSizes)( UINT32, UINT32 *, UINT32 *);
+    LONG (WINAPI *QueryDisplayConfig)( UINT32, UINT32 *, DISPLAYCONFIG_PATH_INFO*, UINT32 *, DISPLAYCONFIG_MODE_INFO*, DISPLAYCONFIG_TOPOLOGY_ID*);
     LONG (WINAPI *DisplayConfigGetDeviceInfo)( DISPLAYCONFIG_DEVICE_INFO_HEADER*);
     /* *INDENT-ON* */ // clang-format on
 
@@ -420,6 +463,11 @@ struct SDL_VideoData
     BOOL (WINAPI *GetPointerType)(UINT32 pointerId, POINTER_INPUT_TYPE *pointerType);
     BOOL (WINAPI *GetPointerPenInfo)(UINT32 pointerId, POINTER_PEN_INFO *penInfo);
 
+    SDL_SharedObject *dwmapiDLL;
+    /* *INDENT-OFF* */ // clang-format off
+    HRESULT (WINAPI *DwmFlush)(void);
+    HRESULT (WINAPI *DwmEnableBlurBehindWindow)(HWND hwnd, const DWM_BLURBEHIND *pBlurBehind);
+    HRESULT (WINAPI *DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
     /* *INDENT-ON* */ // clang-format on
 #endif                // !defined(SDL_PLATFORM_XBOXONE) && !defined(SDL_PLATFORM_XBOXSERIES)
 
@@ -492,6 +540,11 @@ struct SDL_VideoData
 
     BYTE pre_hook_key_state[256];
     UINT _SDL_WAKEUP;
+
+#ifdef HAVE_SHOBJIDL_CORE_H
+    UINT WM_TASKBAR_BUTTON_CREATED;
+    ITaskbarList3 *taskbar_list;
+#endif
 };
 
 extern bool g_WindowsEnableMessageLoop;

@@ -2,31 +2,30 @@
  * Original code: automated SDL platform test written by Edgar Simo "bobbens"
  * Extended and extensively updated by aschiffler at ferzkopp dot net
  */
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_test.h>
 #include "testautomation_images.h"
 #include "testautomation_suites.h"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_test.h>
 
 /* ================= Test Case Implementation ================== */
 
 #define TESTRENDER_SCREEN_W 80
 #define TESTRENDER_SCREEN_H 60
 
-
 #define RENDER_COMPARE_FORMAT SDL_PIXELFORMAT_ARGB8888
-#define RENDER_COLOR_CLEAR  0xFF000000
-#define RENDER_COLOR_GREEN  0xFF00FF00
+#define RENDER_COLOR_CLEAR    0xFF000000
+#define RENDER_COLOR_GREEN    0xFF00FF00
 
 #define ALLOWABLE_ERROR_OPAQUE  0
 #define ALLOWABLE_ERROR_BLENDED 0
 
-#define CHECK_FUNC(FUNC, PARAMS)    \
-{                                   \
-    bool result = FUNC PARAMS;  \
-    if (!result) {                  \
-        SDLTest_AssertCheck(result, "Validate result from %s, expected: true, got: false, %s", #FUNC, SDL_GetError()); \
-    }                               \
-}
+#define CHECK_FUNC(FUNC, PARAMS)                                                                                           \
+    {                                                                                                                      \
+        bool result = FUNC PARAMS;                                                                                         \
+        if (!result) {                                                                                                     \
+            SDLTest_AssertCheck(result, "Validate result from %s, expected: true, got: false, %s", #FUNC, SDL_GetError()); \
+        }                                                                                                                  \
+    }
 
 /* Test window and renderer */
 static SDL_Window *window = NULL;
@@ -308,7 +307,7 @@ static int SDLCALL render_testBlitTiled(void *arg)
     if (tface == NULL) {
         return TEST_ABORTED;
     }
-    SDL_SetTextureScaleMode(tface, SDL_SCALEMODE_NEAREST);  /* So 2x scaling is pixel perfect */
+    SDL_SetTextureScaleMode(tface, SDL_SCALEMODE_NEAREST); /* So 2x scaling is pixel perfect */
 
     /* Tiled blit - 1.0 scale */
     {
@@ -974,7 +973,7 @@ static void testBlendModeOperation(TestRenderOperation op, int mode, SDL_PixelFo
     }
 
     /* Test blend mode. */
-#define FLOAT(X)    ((float)X / 255.0f)
+#define FLOAT(X) ((float)X / 255.0f)
     switch (mode) {
     case -1:
         mode_name = "color modulation";
@@ -1083,12 +1082,12 @@ static void testBlendModeOperation(TestRenderOperation op, int mode, SDL_PixelFo
     deltaA = SDL_abs((int)actualA - expectedA);
     SDLTest_AssertCheck(
         deltaR <= MAXIMUM_ERROR &&
-        deltaG <= MAXIMUM_ERROR &&
-        deltaB <= MAXIMUM_ERROR &&
-        deltaA <= MAXIMUM_ERROR,
+            deltaG <= MAXIMUM_ERROR &&
+            deltaB <= MAXIMUM_ERROR &&
+            deltaA <= MAXIMUM_ERROR,
         "Checking %s %s operation results, expected %d,%d,%d,%d, got %d,%d,%d,%d",
-            operation, mode_name,
-            expectedR, expectedG, expectedB, expectedA, actualR, actualG, actualB, actualA);
+        operation, mode_name,
+        expectedR, expectedG, expectedB, expectedA, actualR, actualG, actualB, actualA);
 
     /* Clean up */
     SDL_DestroySurface(result);
@@ -1200,6 +1199,129 @@ static int SDLCALL render_testViewport(void *arg)
     return TEST_COMPLETED;
 }
 
+static int SDLCALL render_testRGBSurfaceNoAlpha(void *arg)
+{
+    SDL_Surface *surface;
+    SDL_Renderer *software_renderer;
+    SDL_Surface *surface2;
+    SDL_Texture *texture2;
+    bool result;
+    SDL_FRect dest_rect;
+    SDL_FPoint point;
+    const SDL_PixelFormatDetails *format_details;
+    Uint8 r, g, b, a;
+
+    SDLTest_AssertPass("About to call SDL_CreateSurface(128, 128, SDL_PIXELFORMAT_RGBX32)");
+    surface = SDL_CreateSurface(128, 128, SDL_PIXELFORMAT_RGBX32);
+    SDLTest_AssertCheck(surface != NULL, "Returned surface must be not NULL");
+    if (surface == NULL) {
+        return TEST_ABORTED;
+    }
+
+    SDLTest_AssertPass("About to call SDL_GetPixelFormatDetails(surface->format)");
+    format_details = SDL_GetPixelFormatDetails(surface->format);
+    SDLTest_AssertCheck(format_details != NULL, "Result must be non-NULL, is %p", format_details);
+    if (format_details == NULL) {
+        SDL_DestroySurface(surface);
+        return TEST_ABORTED;
+    }
+
+    SDLTest_AssertCheck(format_details->bits_per_pixel == 32, "format_details->bits_per_pixel is %d, should be %d", format_details->bits_per_pixel, 32);
+    SDLTest_AssertCheck(format_details->bytes_per_pixel == 4, "format_details->bytes_per_pixel is %d, should be %d", format_details->bytes_per_pixel, 4);
+
+    SDLTest_AssertPass("About to call SDL_CreateSoftwareRenderer(surface)");
+    software_renderer = SDL_CreateSoftwareRenderer(surface);
+    SDLTest_AssertCheck(software_renderer != NULL, "Returned renderer must be not NULL");
+    if (software_renderer == NULL) {
+        SDL_DestroySurface(surface);
+        return TEST_ABORTED;
+    }
+
+    SDLTest_AssertPass("About to call SDL_CreateSurface(16, 16, SDL_PIXELFORMAT_RGBX32)");
+    surface2 = SDL_CreateSurface(16, 16, SDL_PIXELFORMAT_RGBX32);
+    SDLTest_AssertCheck(surface2 != NULL, "Returned surface must be not NULL");
+    if (surface2 == NULL) {
+        SDL_DestroySurface(surface);
+        SDL_DestroyRenderer(software_renderer);
+        return TEST_ABORTED;
+    }
+
+    SDLTest_AssertPass("About to call SDL_FillRect(surface2, NULL, 0)");
+    result = SDL_FillSurfaceRect(surface2, NULL, SDL_MapRGB(SDL_GetPixelFormatDetails(surface2->format), NULL, 0, 0, 0));
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+
+    SDLTest_AssertPass("About to call SDL_CreateTextureFromSurface(software_renderer, surface2)");
+    texture2 = SDL_CreateTextureFromSurface(software_renderer, surface2);
+    SDLTest_AssertCheck(texture2 != NULL, "Returned texture is not NULL");
+
+    SDLTest_AssertPass("About to call SDL_SetRenderDrawColor(renderer, 0xaa, 0xbb, 0xcc, 0x0)");
+    result = SDL_SetRenderDrawColor(software_renderer, 0xaa, 0xbb, 0xcc, 0x0);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+
+    SDLTest_AssertPass("About to call SDL_RenderClear(renderer)");
+    result = SDL_RenderClear(software_renderer);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+
+    SDLTest_AssertPass("About to call SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0x0)");
+    result = SDL_SetRenderDrawColor(software_renderer, 0x0, 0x0, 0x0, 0x0);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+
+    dest_rect.x = 32;
+    dest_rect.y = 32;
+    dest_rect.w = (float)surface2->w;
+    dest_rect.h = (float)surface2->h;
+    point.x = 0;
+    point.y = 0;
+    SDLTest_AssertPass("About to call SDL_RenderCopy(software_renderer, texture, NULL, &{%g, %g, %g, %g})",
+                       dest_rect.x, dest_rect.h, dest_rect.w, dest_rect.h);
+    result = SDL_RenderTextureRotated(software_renderer, texture2, NULL, &dest_rect, 180, &point, SDL_FLIP_NONE);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+
+    SDLTest_AssertPass("About to call SDL_RenderPresent(software_renderer)");
+    SDL_RenderPresent(software_renderer);
+
+    SDLTest_AssertPass("About to call SDL_ReadSurfacePixel(0, 0)");
+    result = SDL_ReadSurfacePixel(surface, 0, 0, &r, &g, &b, &a);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+    SDLTest_AssertCheck(r == 0xaa && g == 0xbb && b == 0xcc && a == SDL_ALPHA_OPAQUE,
+                        "Pixel at (0, 0) is {0x%02x,0x%02x,0x%02x,0x%02x}, should be {0x%02x,0x%02x,0x%02x,0x%02x}",
+                        r, g, b, a, 0xaa, 0xbb, 0xcc, SDL_ALPHA_OPAQUE);
+
+    SDLTest_AssertPass("About to call SDL_ReadSurfacePixel(15, 15)");
+    result = SDL_ReadSurfacePixel(surface, 15, 15, &r, &g, &b, &a);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+    SDLTest_AssertCheck(r == 0xaa && g == 0xbb && b == 0xcc && a == SDL_ALPHA_OPAQUE,
+                        "Pixel at (0, 0) is {0x%02x,0x%02x,0x%02x,0x%02x}, should be {0x%02x,0x%02x,0x%02x,0x%02x}",
+                        r, g, b, a, 0xaa, 0xbb, 0xcc, SDL_ALPHA_OPAQUE);
+
+    SDLTest_AssertPass("About to call SDL_ReadSurfacePixel(16, 16)");
+    result = SDL_ReadSurfacePixel(surface, 16, 16, &r, &g, &b, &a);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+    SDLTest_AssertCheck(r == 0x00 && g == 0x00 && b == 0x00 && a == SDL_ALPHA_OPAQUE,
+                        "Pixel at (0, 0) is {0x%02x,0x%02x,0x%02x,0x%02x}, should be {0x%02x,0x%02x,0x%02x,0x%02x}",
+                        r, g, b, a, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
+
+    SDLTest_AssertPass("About to call SDL_ReadSurfacePixel(31, 31)");
+    result = SDL_ReadSurfacePixel(surface, 31, 31, &r, &g, &b, &a);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+    SDLTest_AssertCheck(r == 0x00 && g == 0x00 && b == 0x00 && a == SDL_ALPHA_OPAQUE,
+                        "Pixel at (0, 0) is {0x%02x,0x%02x,0x%02x,0x%02x}, should be {0x%02x,0x%02x,0x%02x,0x%02x}",
+                        r, g, b, a, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
+
+    SDLTest_AssertPass("About to call SDL_ReadSurfacePixel(32, 32)");
+    result = SDL_ReadSurfacePixel(surface, 32, 32, &r, &g, &b, &a);
+    SDLTest_AssertCheck(result == true, "Result is %d, should be %d", result, true);
+    SDLTest_AssertCheck(r == 0xaa && g == 0xbb && b == 0xcc && a == SDL_ALPHA_OPAQUE,
+                        "Pixel at (0, 0) is {0x%02x,0x%02x,0x%02x,0x%02x}, should be {0x%02x,0x%02x,0x%02x,0x%02x}",
+                        r, g, b, a, 0xaa, 0xbb, 0xcc, SDL_ALPHA_OPAQUE);
+
+    SDL_DestroyTexture(texture2);
+    SDL_DestroySurface(surface2);
+    SDL_DestroyRenderer(software_renderer);
+    SDL_DestroySurface(surface);
+    return TEST_COMPLETED;
+}
+
 /**
  * Test clip rect
  */
@@ -1290,15 +1412,15 @@ static int SDLCALL render_testLogicalSize(void *arg)
     CHECK_FUNC(SDL_GetRenderLogicalPresentation, (renderer, &set_w, &set_h, &set_presentation_mode))
     SDLTest_AssertCheck(
         set_w == (w / factor) &&
-        set_h == (h / factor) &&
-        set_presentation_mode == SDL_LOGICAL_PRESENTATION_LETTERBOX,
+            set_h == (h / factor) &&
+            set_presentation_mode == SDL_LOGICAL_PRESENTATION_LETTERBOX,
         "Validate result from SDL_GetRenderLogicalPresentation, got %d, %d, %d", set_w, set_h, set_presentation_mode);
     CHECK_FUNC(SDL_GetRenderLogicalPresentationRect, (renderer, &set_rect))
     SDLTest_AssertCheck(
         set_rect.x == 0.0f &&
-        set_rect.y == 0.0f &&
-        set_rect.w == 320.0f &&
-        set_rect.h == 240.0f,
+            set_rect.y == 0.0f &&
+            set_rect.w == 320.0f &&
+            set_rect.h == 240.0f,
         "Validate result from SDL_GetRenderLogicalPresentationRect, got {%g, %g, %gx%g}", set_rect.x, set_rect.y, set_rect.w, set_rect.h);
     CHECK_FUNC(SDL_SetRenderDrawColor, (renderer, 0, 255, 0, SDL_ALPHA_OPAQUE))
     rect.x = (float)viewport.x / factor;
@@ -1310,15 +1432,15 @@ static int SDLCALL render_testLogicalSize(void *arg)
     CHECK_FUNC(SDL_GetRenderLogicalPresentation, (renderer, &set_w, &set_h, &set_presentation_mode))
     SDLTest_AssertCheck(
         set_w == 0 &&
-        set_h == 0 &&
-        set_presentation_mode == SDL_LOGICAL_PRESENTATION_DISABLED,
+            set_h == 0 &&
+            set_presentation_mode == SDL_LOGICAL_PRESENTATION_DISABLED,
         "Validate result from SDL_GetRenderLogicalPresentation, got %d, %d, %d", set_w, set_h, set_presentation_mode);
     CHECK_FUNC(SDL_GetRenderLogicalPresentationRect, (renderer, &set_rect))
     SDLTest_AssertCheck(
         set_rect.x == 0.0f &&
-        set_rect.y == 0.0f &&
-        set_rect.w == 320.0f &&
-        set_rect.h == 240.0f,
+            set_rect.y == 0.0f &&
+            set_rect.w == 320.0f &&
+            set_rect.h == 240.0f,
         "Validate result from SDL_GetRenderLogicalPresentationRect, got {%g, %g, %gx%g}", set_rect.x, set_rect.y, set_rect.w, set_rect.h);
 
     /* Check to see if final image matches. */
@@ -1362,21 +1484,21 @@ static int SDLCALL render_testLogicalSize(void *arg)
     /* Set the logical size and do a fill operation */
     CHECK_FUNC(SDL_GetCurrentRenderOutputSize, (renderer, &w, &h))
     CHECK_FUNC(SDL_SetRenderLogicalPresentation, (renderer,
-                                           w - 2 * (TESTRENDER_SCREEN_W / 4),
-                                           h,
-                                           SDL_LOGICAL_PRESENTATION_LETTERBOX))
+                                                  w - 2 * (TESTRENDER_SCREEN_W / 4),
+                                                  h,
+                                                  SDL_LOGICAL_PRESENTATION_LETTERBOX))
     CHECK_FUNC(SDL_GetRenderLogicalPresentation, (renderer, &set_w, &set_h, &set_presentation_mode))
     SDLTest_AssertCheck(
         set_w == w - 2 * (TESTRENDER_SCREEN_W / 4) &&
-        set_h == h &&
-        set_presentation_mode == SDL_LOGICAL_PRESENTATION_LETTERBOX,
+            set_h == h &&
+            set_presentation_mode == SDL_LOGICAL_PRESENTATION_LETTERBOX,
         "Validate result from SDL_GetRenderLogicalPresentation, got %d, %d, %d", set_w, set_h, set_presentation_mode);
     CHECK_FUNC(SDL_GetRenderLogicalPresentationRect, (renderer, &set_rect))
     SDLTest_AssertCheck(
         set_rect.x == 20.0f &&
-        set_rect.y == 0.0f &&
-        set_rect.w == 280.0f &&
-        set_rect.h == 240.0f,
+            set_rect.y == 0.0f &&
+            set_rect.w == 280.0f &&
+            set_rect.h == 240.0f,
         "Validate result from SDL_GetRenderLogicalPresentationRect, got {%g, %g, %gx%g}", set_rect.x, set_rect.y, set_rect.w, set_rect.h);
     CHECK_FUNC(SDL_SetRenderDrawColor, (renderer, 0, 255, 0, SDL_ALPHA_OPAQUE))
     CHECK_FUNC(SDL_RenderFillRect, (renderer, NULL))
@@ -1384,15 +1506,15 @@ static int SDLCALL render_testLogicalSize(void *arg)
     CHECK_FUNC(SDL_GetRenderLogicalPresentation, (renderer, &set_w, &set_h, &set_presentation_mode))
     SDLTest_AssertCheck(
         set_w == 0 &&
-        set_h == 0 &&
-        set_presentation_mode == SDL_LOGICAL_PRESENTATION_DISABLED,
+            set_h == 0 &&
+            set_presentation_mode == SDL_LOGICAL_PRESENTATION_DISABLED,
         "Validate result from SDL_GetRenderLogicalPresentation, got %d, %d, %d", set_w, set_h, set_presentation_mode);
     CHECK_FUNC(SDL_GetRenderLogicalPresentationRect, (renderer, &set_rect))
     SDLTest_AssertCheck(
         set_rect.x == 0.0f &&
-        set_rect.y == 0.0f &&
-        set_rect.w == 320.0f &&
-        set_rect.h == 240.0f,
+            set_rect.y == 0.0f &&
+            set_rect.w == 320.0f &&
+            set_rect.h == 240.0f,
         "Validate result from SDL_GetRenderLogicalPresentationRect, got {%g, %g, %gx%g}", set_rect.x, set_rect.y, set_rect.w, set_rect.h);
 
     /* Check to see if final image matches. */
@@ -1406,6 +1528,47 @@ static int SDLCALL render_testLogicalSize(void *arg)
 
     SDL_DestroySurface(referenceSurface);
 
+    return TEST_COMPLETED;
+}
+
+/**
+ * @brief Tests setting and getting texture scale mode.
+ *
+ * \sa
+ * http://wiki.libsdl.org/SDL2/SDL_SetTextureScaleMode
+ * http://wiki.libsdl.org/SDL2/SDL_GetTextureScaleMode
+ */
+static int SDLCALL render_testGetSetTextureScaleMode(void *arg)
+{
+    const struct
+    {
+        const char *name;
+        SDL_ScaleMode mode;
+    } modes[] = {
+        { "SDL_SCALEMODE_NEAREST", SDL_SCALEMODE_NEAREST },
+        { "SDL_SCALEMODE_LINEAR", SDL_SCALEMODE_LINEAR },
+        { "SDL_SCALEMODE_PIXELART", SDL_SCALEMODE_PIXELART },
+    };
+    size_t i;
+
+    for (i = 0; i < SDL_arraysize(modes); i++) {
+        SDL_Texture *texture;
+        bool result;
+        SDL_ScaleMode actual_mode = SDL_SCALEMODE_NEAREST;
+
+        SDL_ClearError();
+        SDLTest_AssertPass("About to call SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 16, 16)");
+        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 16, 16);
+        SDLTest_AssertCheck(texture != NULL, "SDL_CreateTexture must return a non-NULL texture");
+        SDLTest_AssertPass("About to call SDL_SetTextureScaleMode(texture, %s)", modes[i].name);
+        result = SDL_SetTextureScaleMode(texture, modes[i].mode);
+        SDLTest_AssertCheck(result == true, "SDL_SetTextureScaleMode returns %d, expected %d", result, true);
+        SDLTest_AssertPass("About to call SDL_GetTextureScaleMode(texture)");
+        result = SDL_GetTextureScaleMode(texture, &actual_mode);
+        SDLTest_AssertCheck(result == true, "SDL_SetTextureScaleMode returns %d, expected %d", result, true);
+        SDLTest_AssertCheck(actual_mode == modes[i].mode, "SDL_GetTextureScaleMode must return %s (%d), actual=%d",
+                            modes[i].name, modes[i].mode, actual_mode);
+    }
     return TEST_COMPLETED;
 }
 
@@ -1776,7 +1939,7 @@ static int SDLCALL render_testTextureState(void *arg)
     rect.y = 0;
     rect.w = 2;
     rect.h = 1;
-    for (i = 0; i < SDL_arraysize(expected); ) {
+    for (i = 0; i < SDL_arraysize(expected);) {
         const int MAX_DELTA = 1;
         SDL_Color actual;
         int deltaR, deltaG, deltaB, deltaA;
@@ -1788,10 +1951,10 @@ static int SDLCALL render_testTextureState(void *arg)
         deltaB = (actual.b - expected[i].b);
         deltaA = (actual.a - expected[i].a);
         SDLTest_AssertCheck(SDL_abs(deltaR) <= MAX_DELTA &&
-                            SDL_abs(deltaG) <= MAX_DELTA &&
-                            SDL_abs(deltaB) <= MAX_DELTA &&
-                            SDL_abs(deltaA) <= MAX_DELTA,
-                            "Validate left pixel at step %d, expected %d,%d,%d,%d, got %d,%d,%d,%d", i/2,
+                                SDL_abs(deltaG) <= MAX_DELTA &&
+                                SDL_abs(deltaB) <= MAX_DELTA &&
+                                SDL_abs(deltaA) <= MAX_DELTA,
+                            "Validate left pixel at step %d, expected %d,%d,%d,%d, got %d,%d,%d,%d", i / 2,
                             expected[i].r, expected[i].g, expected[i].b, expected[i].a,
                             actual.r, actual.g, actual.b, actual.a);
         ++i;
@@ -1802,10 +1965,10 @@ static int SDLCALL render_testTextureState(void *arg)
         deltaB = (actual.b - expected[i].b);
         deltaA = (actual.a - expected[i].a);
         SDLTest_AssertCheck(SDL_abs(deltaR) <= MAX_DELTA &&
-                            SDL_abs(deltaG) <= MAX_DELTA &&
-                            SDL_abs(deltaB) <= MAX_DELTA &&
-                            SDL_abs(deltaA) <= MAX_DELTA,
-                            "Validate right pixel at step %d, expected %d,%d,%d,%d, got %d,%d,%d,%d", i/2,
+                                SDL_abs(deltaG) <= MAX_DELTA &&
+                                SDL_abs(deltaB) <= MAX_DELTA &&
+                                SDL_abs(deltaA) <= MAX_DELTA,
+                            "Validate right pixel at step %d, expected %d,%d,%d,%d, got %d,%d,%d,%d", i / 2,
                             expected[i].r, expected[i].g, expected[i].b, expected[i].a,
                             actual.r, actual.g, actual.b, actual.a);
         ++i;
@@ -1880,6 +2043,14 @@ static const SDLTest_TestCaseReference renderTestTextureState = {
     render_testTextureState, "render_testTextureState", "Tests texture state changes", TEST_ENABLED
 };
 
+static const SDLTest_TestCaseReference renderTestGetSetTextureScaleMode = {
+    render_testGetSetTextureScaleMode, "render_testGetSetTextureScaleMode", "Tests setting/getting texture scale mode", TEST_ENABLED
+};
+
+static const SDLTest_TestCaseReference renderTestRGBSurfaceNoAlpha = {
+    render_testRGBSurfaceNoAlpha, "render_testRGBSurfaceNoAlpha", "Tests RGB surface with no alpha using software renderer", TEST_ENABLED
+};
+
 /* Sequence of Render test cases */
 static const SDLTest_TestCaseReference *renderTests[] = {
     &renderTestGetNumRenderDrivers,
@@ -1896,6 +2067,8 @@ static const SDLTest_TestCaseReference *renderTests[] = {
     &renderTestLogicalSize,
     &renderTestUVWrapping,
     &renderTestTextureState,
+    &renderTestGetSetTextureScaleMode,
+    &renderTestRGBSurfaceNoAlpha,
     NULL
 };
 

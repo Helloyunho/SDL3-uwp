@@ -32,7 +32,8 @@
  * There is also a simple .bmp loader, SDL_LoadBMP(). SDL itself does not
  * provide loaders for various other file formats, but there are several
  * excellent external libraries that do, including its own satellite library,
- * SDL_image:
+ * [SDL_image](https://wiki.libsdl.org/SDL3_image)
+ * :
  *
  * https://github.com/libsdl-org/SDL_image
  */
@@ -40,13 +41,13 @@
 #ifndef SDL_surface_h_
 #define SDL_surface_h_
 
-#include <SDL3/SDL_stdinc.h>
-#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_blendmode.h>
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_iostream.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_properties.h>
 #include <SDL3/SDL_rect.h>
-#include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_stdinc.h>
 
 #include <SDL3/SDL_begin_code.h>
 /* Set up for C function definitions, even when using C++ */
@@ -63,10 +64,10 @@ extern "C" {
  */
 typedef Uint32 SDL_SurfaceFlags;
 
-#define SDL_SURFACE_PREALLOCATED    0x00000001u /**< Surface uses preallocated pixel memory */
-#define SDL_SURFACE_LOCK_NEEDED     0x00000002u /**< Surface needs to be locked to access pixels */
-#define SDL_SURFACE_LOCKED          0x00000004u /**< Surface is currently locked */
-#define SDL_SURFACE_SIMD_ALIGNED    0x00000008u /**< Surface uses pixel memory allocated with SDL_aligned_alloc() */
+#define SDL_SURFACE_PREALLOCATED 0x00000001u /**< Surface uses preallocated pixel memory */
+#define SDL_SURFACE_LOCK_NEEDED  0x00000002u /**< Surface needs to be locked to access pixels */
+#define SDL_SURFACE_LOCKED       0x00000004u /**< Surface is currently locked */
+#define SDL_SURFACE_SIMD_ALIGNED 0x00000008u /**< Surface uses pixel memory allocated with SDL_aligned_alloc() */
 
 /**
  * Evaluates to true if the surface needs to be locked before access.
@@ -82,9 +83,10 @@ typedef Uint32 SDL_SurfaceFlags;
  */
 typedef enum SDL_ScaleMode
 {
-    SDL_SCALEMODE_INVALID = -1, /**< invalid scaling mode */
+    SDL_SCALEMODE_INVALID = -1,
     SDL_SCALEMODE_NEAREST, /**< nearest pixel sampling */
-    SDL_SCALEMODE_LINEAR   /**< linear filtering */
+    SDL_SCALEMODE_LINEAR,  /**< linear filtering */
+    SDL_SCALEMODE_PIXELART /**< nearest pixel sampling with improved scaling for pixel art */
 } SDL_ScaleMode;
 
 /**
@@ -94,9 +96,9 @@ typedef enum SDL_ScaleMode
  */
 typedef enum SDL_FlipMode
 {
-    SDL_FLIP_NONE,          /**< Do not flip */
-    SDL_FLIP_HORIZONTAL,    /**< flip horizontally */
-    SDL_FLIP_VERTICAL       /**< flip vertically */
+    SDL_FLIP_NONE,       /**< Do not flip */
+    SDL_FLIP_HORIZONTAL, /**< flip horizontally */
+    SDL_FLIP_VERTICAL    /**< flip vertically */
 } SDL_FlipMode;
 
 #ifndef SDL_INTERNAL
@@ -131,16 +133,16 @@ typedef enum SDL_FlipMode
  */
 struct SDL_Surface
 {
-    SDL_SurfaceFlags flags;     /**< The flags of the surface, read-only */
-    SDL_PixelFormat format;     /**< The format of the surface, read-only */
-    int w;                      /**< The width of the surface, read-only. */
-    int h;                      /**< The height of the surface, read-only. */
-    int pitch;                  /**< The distance in bytes between rows of pixels, read-only */
-    void *pixels;               /**< A pointer to the pixels of the surface, the pixels are writeable if non-NULL */
+    SDL_SurfaceFlags flags; /**< The flags of the surface, read-only */
+    SDL_PixelFormat format; /**< The format of the surface, read-only */
+    int w;                  /**< The width of the surface, read-only. */
+    int h;                  /**< The height of the surface, read-only. */
+    int pitch;              /**< The distance in bytes between rows of pixels, read-only */
+    void *pixels;           /**< A pointer to the pixels of the surface, the pixels are writeable if non-NULL */
 
-    int refcount;               /**< Application reference count, used when freeing surface */
+    int refcount; /**< Application reference count, used when freeing surface */
 
-    void *reserved;             /**< Reserved for internal use */
+    void *reserved; /**< Reserved for internal use */
 };
 #endif /* !SDL_INTERNAL */
 
@@ -164,7 +166,7 @@ typedef struct SDL_Surface SDL_Surface;
  * \sa SDL_CreateSurfaceFrom
  * \sa SDL_DestroySurface
  */
-extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_CreateSurface(int width, int height, SDL_PixelFormat format);
+extern SDL_DECLSPEC SDL_Surface *SDLCALL SDL_CreateSurface(int width, int height, SDL_PixelFormat format);
 
 /**
  * Allocate a new surface with a specific pixel format and existing pixel
@@ -194,7 +196,7 @@ extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_CreateSurface(int width, int heigh
  * \sa SDL_CreateSurface
  * \sa SDL_DestroySurface
  */
-extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_CreateSurfaceFrom(int width, int height, SDL_PixelFormat format, void *pixels, int pitch);
+extern SDL_DECLSPEC SDL_Surface *SDLCALL SDL_CreateSurfaceFrom(int width, int height, SDL_PixelFormat format, void *pixels, int pitch);
 
 /**
  * Free a surface.
@@ -246,11 +248,11 @@ extern SDL_DECLSPEC void SDLCALL SDL_DestroySurface(SDL_Surface *surface);
  */
 extern SDL_DECLSPEC SDL_PropertiesID SDLCALL SDL_GetSurfaceProperties(SDL_Surface *surface);
 
-#define SDL_PROP_SURFACE_SDR_WHITE_POINT_FLOAT              "SDL.surface.SDR_white_point"
-#define SDL_PROP_SURFACE_HDR_HEADROOM_FLOAT                 "SDL.surface.HDR_headroom"
-#define SDL_PROP_SURFACE_TONEMAP_OPERATOR_STRING            "SDL.surface.tonemap"
-#define SDL_PROP_SURFACE_HOTSPOT_X_NUMBER                   "SDL.surface.hotspot.x"
-#define SDL_PROP_SURFACE_HOTSPOT_Y_NUMBER                   "SDL.surface.hotspot.y"
+#define SDL_PROP_SURFACE_SDR_WHITE_POINT_FLOAT   "SDL.surface.SDR_white_point"
+#define SDL_PROP_SURFACE_HDR_HEADROOM_FLOAT      "SDL.surface.HDR_headroom"
+#define SDL_PROP_SURFACE_TONEMAP_OPERATOR_STRING "SDL.surface.tonemap"
+#define SDL_PROP_SURFACE_HOTSPOT_X_NUMBER        "SDL.surface.hotspot.x"
+#define SDL_PROP_SURFACE_HOTSPOT_Y_NUMBER        "SDL.surface.hotspot.y"
 
 /**
  * Set the colorspace used by a surface.
@@ -319,7 +321,7 @@ extern SDL_DECLSPEC SDL_Colorspace SDLCALL SDL_GetSurfaceColorspace(SDL_Surface 
  *
  * \sa SDL_SetPaletteColors
  */
-extern SDL_DECLSPEC SDL_Palette * SDLCALL SDL_CreateSurfacePalette(SDL_Surface *surface);
+extern SDL_DECLSPEC SDL_Palette *SDLCALL SDL_CreateSurfacePalette(SDL_Surface *surface);
 
 /**
  * Set the palette used by a surface.
@@ -353,7 +355,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_SetSurfacePalette(SDL_Surface *surface, SDL
  *
  * \sa SDL_SetSurfacePalette
  */
-extern SDL_DECLSPEC SDL_Palette * SDLCALL SDL_GetSurfacePalette(SDL_Surface *surface);
+extern SDL_DECLSPEC SDL_Palette *SDLCALL SDL_GetSurfacePalette(SDL_Surface *surface);
 
 /**
  * Add an alternate version of a surface.
@@ -423,7 +425,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_SurfaceHasAlternateImages(SDL_Surface *surf
  * \sa SDL_RemoveSurfaceAlternateImages
  * \sa SDL_SurfaceHasAlternateImages
  */
-extern SDL_DECLSPEC SDL_Surface ** SDLCALL SDL_GetSurfaceImages(SDL_Surface *surface, int *count);
+extern SDL_DECLSPEC SDL_Surface **SDLCALL SDL_GetSurfaceImages(SDL_Surface *surface, int *count);
 
 /**
  * Remove all alternate versions of a surface.
@@ -505,7 +507,7 @@ extern SDL_DECLSPEC void SDLCALL SDL_UnlockSurface(SDL_Surface *surface);
  * \sa SDL_LoadBMP
  * \sa SDL_SaveBMP_IO
  */
-extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_LoadBMP_IO(SDL_IOStream *src, bool closeio);
+extern SDL_DECLSPEC SDL_Surface *SDLCALL SDL_LoadBMP_IO(SDL_IOStream *src, bool closeio);
 
 /**
  * Load a BMP image from a file.
@@ -525,7 +527,7 @@ extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_LoadBMP_IO(SDL_IOStream *src, bool
  * \sa SDL_LoadBMP_IO
  * \sa SDL_SaveBMP
  */
-extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_LoadBMP(const char *file);
+extern SDL_DECLSPEC SDL_Surface *SDLCALL SDL_LoadBMP(const char *file);
 
 /**
  * Save a surface to a seekable SDL data stream in BMP format.
@@ -702,7 +704,6 @@ extern SDL_DECLSPEC bool SDLCALL SDL_GetSurfaceColorKey(SDL_Surface *surface, Ui
  */
 extern SDL_DECLSPEC bool SDLCALL SDL_SetSurfaceColorMod(SDL_Surface *surface, Uint8 r, Uint8 g, Uint8 b);
 
-
 /**
  * Get the additional color value multiplied into blit operations.
  *
@@ -873,7 +874,7 @@ extern SDL_DECLSPEC bool SDLCALL SDL_FlipSurface(SDL_Surface *surface, SDL_FlipM
  *
  * \sa SDL_DestroySurface
  */
-extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_DuplicateSurface(SDL_Surface *surface);
+extern SDL_DECLSPEC SDL_Surface *SDLCALL SDL_DuplicateSurface(SDL_Surface *surface);
 
 /**
  * Creates a new surface identical to the existing surface, scaled to the
@@ -894,7 +895,7 @@ extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_DuplicateSurface(SDL_Surface *surf
  *
  * \sa SDL_DestroySurface
  */
-extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_ScaleSurface(SDL_Surface *surface, int width, int height, SDL_ScaleMode scaleMode);
+extern SDL_DECLSPEC SDL_Surface *SDLCALL SDL_ScaleSurface(SDL_Surface *surface, int width, int height, SDL_ScaleMode scaleMode);
 
 /**
  * Copy an existing surface to a new surface of the specified format.
@@ -922,7 +923,7 @@ extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_ScaleSurface(SDL_Surface *surface,
  * \sa SDL_ConvertSurfaceAndColorspace
  * \sa SDL_DestroySurface
  */
-extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_ConvertSurface(SDL_Surface *surface, SDL_PixelFormat format);
+extern SDL_DECLSPEC SDL_Surface *SDLCALL SDL_ConvertSurface(SDL_Surface *surface, SDL_PixelFormat format);
 
 /**
  * Copy an existing surface to a new surface of the specified format and
@@ -950,7 +951,7 @@ extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_ConvertSurface(SDL_Surface *surfac
  * \sa SDL_ConvertSurface
  * \sa SDL_DestroySurface
  */
-extern SDL_DECLSPEC SDL_Surface * SDLCALL SDL_ConvertSurfaceAndColorspace(SDL_Surface *surface, SDL_PixelFormat format, SDL_Palette *palette, SDL_Colorspace colorspace, SDL_PropertiesID props);
+extern SDL_DECLSPEC SDL_Surface *SDLCALL SDL_ConvertSurfaceAndColorspace(SDL_Surface *surface, SDL_PixelFormat format, SDL_Palette *palette, SDL_Colorspace colorspace, SDL_PropertiesID props);
 
 /**
  * Copy a block of pixels of one format to another format.
@@ -1135,9 +1136,6 @@ extern SDL_DECLSPEC bool SDLCALL SDL_FillSurfaceRects(SDL_Surface *dst, const SD
  * If either `srcrect` or `dstrect` are NULL, the entire surface (`src` or
  * `dst`) is copied while ensuring clipping to `dst->clip_rect`.
  *
- * The final blit rectangles are saved in `srcrect` and `dstrect` after all
- * clipping is performed.
- *
  * The blit function should not be called on a locked surface.
  *
  * The blit semantics for surfaces with and without blending and colorkey are
@@ -1282,10 +1280,11 @@ extern SDL_DECLSPEC bool SDLCALL SDL_BlitSurfaceUncheckedScaled(SDL_Surface *src
  *
  * \param src the SDL_Surface structure to be copied from.
  * \param srcrect the SDL_Rect structure representing the rectangle to be
- *                copied, may not be NULL.
+ *                copied, or NULL to copy the entire surface.
  * \param dst the SDL_Surface structure that is the blit target.
  * \param dstrect the SDL_Rect structure representing the target rectangle in
- *                the destination surface, may not be NULL.
+ *                the destination surface, or NULL to fill the entire
+ *                destination surface.
  * \param scaleMode the SDL_ScaleMode to be used.
  * \returns true on success or false on failure; call SDL_GetError() for more
  *          information.

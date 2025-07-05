@@ -24,11 +24,11 @@
 
 #include "../SDL_sysrender.h"
 
+#include <dmaKit.h>
+#include <gsKit.h>
+#include <gsToolkit.h>
 #include <kernel.h>
 #include <malloc.h>
-#include <gsKit.h>
-#include <dmaKit.h>
-#include <gsToolkit.h>
 
 #ifdef HAVE_GCC_DIAGNOSTIC_PRAGMA
 #pragma GCC diagnostic push
@@ -60,7 +60,7 @@ typedef struct
 static int vsync_sema_id = 0;
 
 // PRIVATE METHODS
-static int vsync_handler(void)
+static int vsync_handler(int reason)
 {
     iSignalSema(vsync_sema_id);
 
@@ -151,7 +151,7 @@ static bool PS2_CreateTexture(SDL_Renderer *renderer, SDL_Texture *texture, SDL_
 }
 
 static bool PS2_LockTexture(SDL_Renderer *renderer, SDL_Texture *texture,
-                           const SDL_Rect *rect, void **pixels, int *pitch)
+                            const SDL_Rect *rect, void **pixels, int *pitch)
 {
     GSTEXTURE *ps2_texture = (GSTEXTURE *)texture->internal;
 
@@ -171,7 +171,7 @@ static void PS2_UnlockTexture(SDL_Renderer *renderer, SDL_Texture *texture)
 }
 
 static bool PS2_UpdateTexture(SDL_Renderer *renderer, SDL_Texture *texture,
-                             const SDL_Rect *rect, const void *pixels, int pitch)
+                              const SDL_Rect *rect, const void *pixels, int pitch)
 {
     const Uint8 *src;
     Uint8 *dst;
@@ -241,9 +241,9 @@ static bool PS2_QueueDrawPoints(SDL_Renderer *renderer, SDL_RenderCommand *cmd, 
 }
 
 static bool PS2_QueueGeometry(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SDL_Texture *texture,
-                             const float *xy, int xy_stride, const SDL_FColor *color, int color_stride, const float *uv, int uv_stride,
-                             int num_vertices, const void *indices, int num_indices, int size_indices,
-                             float scale_x, float scale_y)
+                              const float *xy, int xy_stride, const SDL_FColor *color, int color_stride, const float *uv, int uv_stride,
+                              int num_vertices, const void *indices, int num_indices, int size_indices,
+                              float scale_x, float scale_y)
 {
     int i;
     int count = indices ? num_indices : num_vertices;
@@ -254,8 +254,8 @@ static bool PS2_QueueGeometry(SDL_Renderer *renderer, SDL_RenderCommand *cmd, SD
     size_indices = indices ? size_indices : 0;
 
     if (texture) {
-        GSPRIMUVPOINT *vertices = (GSPRIMUVPOINT *) SDL_AllocateRenderVertices(renderer, count * sizeof(GSPRIMUVPOINT), 4, &cmd->data.draw.first);
-        GSTEXTURE *ps2_tex = (GSTEXTURE *) texture->internal;
+        GSPRIMUVPOINT *vertices = (GSPRIMUVPOINT *)SDL_AllocateRenderVertices(renderer, count * sizeof(GSPRIMUVPOINT), 4, &cmd->data.draw.first);
+        GSTEXTURE *ps2_tex = (GSTEXTURE *)texture->internal;
 
         if (!vertices) {
             return false;
@@ -440,10 +440,11 @@ static bool PS2_RenderGeometry(SDL_Renderer *renderer, void *vertices, SDL_Rende
     PS2_SetBlendMode(data, cmd->data.draw.blend);
 
     if (cmd->data.draw.texture) {
-        const GSPRIMUVPOINT *verts = (GSPRIMUVPOINT *) (vertices + cmd->data.draw.first);
+        const GSPRIMUVPOINT *verts = (GSPRIMUVPOINT *)(vertices + cmd->data.draw.first);
         GSTEXTURE *ps2_tex = (GSTEXTURE *)cmd->data.draw.texture->internal;
 
         switch (cmd->data.draw.texture_scale_mode) {
+        case SDL_SCALEMODE_PIXELART:
         case SDL_SCALEMODE_NEAREST:
             ps2_tex->Filter = GS_FILTER_NEAREST;
             break;
