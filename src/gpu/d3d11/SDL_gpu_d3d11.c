@@ -52,6 +52,7 @@ static const IID D3D_IID_IDXGIFactory6 = { 0xc1b6694f, 0xff09, 0x44a9, { 0xb0, 0
 static const IID D3D_IID_IDXGIAdapter2 = { 0x0aa1ae0a, 0xfa0e, 0x4b84, { 0x86, 0x44, 0xe0, 0x5f, 0xf8, 0xe5, 0xac, 0xb5 } };
 static const IID D3D_IID_IDXGISwapChain1 = { 0x790a45f7, 0x0d42, 0x4876, { 0x98, 0x3a, 0x0a, 0x55, 0xcf, 0xe6, 0xf4, 0xaa } };
 static const IID D3D_IID_IDXGISwapChain3 = { 0x94d99bdb, 0xf1f8, 0x4ab0, { 0xb2, 0x36, 0x7d, 0xa0, 0x17, 0x0e, 0xda, 0xb1 } };
+static const IID D3D_IID_IDXGIDevice = { 0x54ec77fa, 0x1377, 0x44e6, { 0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c } };
 static const IID D3D_IID_ID3D11Texture2D = { 0x6f15aaf2, 0xd208, 0x4e89, { 0x9a, 0xb4, 0x48, 0x95, 0x35, 0xd3, 0x4f, 0x9c } };
 static const IID D3D_IID_ID3DUserDefinedAnnotation = { 0xb2daad8b, 0x03d4, 0x4dbf, { 0x95, 0xeb, 0x32, 0xab, 0x4b, 0x63, 0xd0, 0xab } };
 static const IID D3D_IID_ID3D11Device1 = { 0xa04bfb29, 0x08ef, 0x43d6, { 0xa4, 0x9c, 0xa9, 0xbd, 0xbd, 0xcb, 0xe6, 0x86 } };
@@ -771,6 +772,9 @@ struct D3D11Renderer
 
     SDL_iconv_t iconv;
 
+    SDL_PropertiesID props;
+    Uint32 allowedFramesInFlight;
+
     // Blit
     BlitPipelineCacheEntry blitPipelines[5];
     SDL_GPUSampler *blitNearestSampler;
@@ -889,6 +893,12 @@ static void D3D11_INTERNAL_SetError(
     SDL_SetError("%s! Error Code: %s " HRESULT_FMT, msg, wszMsgBuff, res);
 }
 
+static SDL_PropertiesID D3D11_GetDeviceProperties(SDL_GPUDevice *device)
+{
+    D3D11Renderer *renderer = (D3D11Renderer *)device->driverData;
+    return renderer->props;
+}
+
 // Helper Functions
 
 static inline Uint32 D3D11_INTERNAL_CalcSubresource(
@@ -965,22 +975,12 @@ static void D3D11_INTERNAL_DestroyBufferContainer(
     SDL_free(container);
 }
 
-static void D3D11_DestroyDevice(
-    SDL_GPUDevice *device)
+static void D3D11_INTERNAL_DestroyRenderer(D3D11Renderer *renderer)
 {
-    D3D11Renderer *renderer = (D3D11Renderer *)device->driverData;
-
-    // Flush any remaining GPU work...
-    D3D11_Wait(device->driverData);
-
-    // Release the window data
-    for (Sint32 i = renderer->claimedWindowCount - 1; i >= 0; i -= 1) {
-        D3D11_ReleaseWindow(device->driverData, renderer->claimedWindows[i]->window);
-    }
     SDL_free(renderer->claimedWindows);
 
     // Release the blit resources
-    D3D11_INTERNAL_DestroyBlitPipelines(device->driverData);
+    D3D11_INTERNAL_DestroyBlitPipelines(renderer);
 
     // Release UBOs
     for (Uint32 i = 0; i < renderer->uniformBufferPoolCount; i += 1) {
@@ -1010,6 +1010,7 @@ static void D3D11_DestroyDevice(
         SDL_free(fence);
     }
     SDL_free(renderer->availableFences);
+    SDL_DestroyProperties(renderer->props);
 
     // Release the iconv, if applicable
     if (renderer->iconv != NULL) {
@@ -1046,6 +1047,22 @@ static void D3D11_DestroyDevice(
 
     // Free the primary structures
     SDL_free(renderer);
+}
+
+static void D3D11_DestroyDevice(
+    SDL_GPUDevice *device)
+{
+    D3D11Renderer *renderer = (D3D11Renderer *)device->driverData;
+
+    // Flush any remaining GPU work...
+    D3D11_Wait(device->driverData);
+
+    // Release the window data
+    for (Sint32 i = renderer->claimedWindowCount - 1; i >= 0; i -= 1) {
+        D3D11_ReleaseWindow(device->driverData, renderer->claimedWindows[i]->window);
+    }
+
+    D3D11_INTERNAL_DestroyRenderer(renderer);
     SDL_free(device);
 }
 
@@ -5142,7 +5159,7 @@ static bool D3D11_INTERNAL_CreateSwapchain(
     swapchainDesc.Height = height;
     swapchainDesc.Stereo = FALSE;
     swapchainDesc.Format = swapchainFormat;
-    swapchainDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+    swapchainDesc.Scaling = DXGI_SCALING_NONE;
 
     // Initialize the rest of the swapchain descriptor
     swapchainDesc.SampleDesc.Count = 1;
@@ -5158,7 +5175,7 @@ static bool D3D11_INTERNAL_CreateSwapchain(
     if (coreWindow) {
         res = IDXGIFactory2_CreateSwapChainForCoreWindow(
             renderer->factory,
-            renderer->device,
+            (IUnknown *)renderer->device,
             coreWindow,
             &swapchainDesc,
             NULL,
@@ -5168,7 +5185,7 @@ static bool D3D11_INTERNAL_CreateSwapchain(
         HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(windowData->window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
         res = IDXGIFactory2_CreateSwapChainForHwnd(
             renderer->factory,
-            renderer->device,
+            (IUnknown *)renderer->device,
             hwnd,
             &swapchainDesc,
             NULL,
@@ -5249,9 +5266,6 @@ static bool D3D11_INTERNAL_CreateSwapchain(
         IDXGISwapChain1_Release(swapchain);
         return false;
     }
-
-    res = IDXGISwapChain1_GetDesc1(swapchain, &swapchainDesc);
-    CHECK_D3D11_ERROR_AND_RETURN("Failed to get swapchain descriptor!", false);
 
     // Initialize dummy container, width/height will be filled out in AcquireSwapchainTexture
     SDL_zerop(&windowData->textureContainer);
@@ -5654,6 +5668,39 @@ static bool D3D11_SetSwapchainParameters(
     return true;
 }
 
+static bool D3D11_SetAllowedFramesInFlight(
+    SDL_GPURenderer *driverData,
+    Uint32 allowedFramesInFlight)
+{
+    D3D11Renderer *renderer = (D3D11Renderer *)driverData;
+
+    if (!D3D11_Wait(driverData)) {
+        return false;
+    }
+
+    for (Uint32 i = 0; i < renderer->claimedWindowCount; i += 1) {
+        D3D11WindowData *windowData = renderer->claimedWindows[i];
+
+        D3D11_INTERNAL_DestroySwapchain(renderer, windowData);
+    }
+
+    renderer->allowedFramesInFlight = allowedFramesInFlight;
+
+    for (Uint32 i = 0; i < renderer->claimedWindowCount; i += 1) {
+        D3D11WindowData *windowData = renderer->claimedWindows[i];
+
+        if (!D3D11_INTERNAL_CreateSwapchain(
+                renderer,
+                windowData,
+                windowData->swapchainComposition,
+                windowData->presentMode)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 // Submission
 
 static bool D3D11_Submit(
@@ -5763,7 +5810,7 @@ static bool D3D11_Submit(
 
         (void)SDL_AtomicIncRef(&d3d11CommandBuffer->fence->referenceCount);
 
-        windowData->frameCounter = (windowData->frameCounter + 1) % MAX_FRAMES_IN_FLIGHT;
+        windowData->frameCounter = (windowData->frameCounter + 1) % renderer->allowedFramesInFlight;
     }
 
     // Check if we can perform any cleanups
@@ -5941,11 +5988,16 @@ static bool D3D11_SupportsTextureFormat(
 
 // Device Creation
 
-static bool D3D11_PrepareDriver(SDL_VideoDevice *this)
+static bool D3D11_PrepareDriver(SDL_VideoDevice *this, SDL_PropertiesID props)
 {
     PFN_D3D11_CREATE_DEVICE D3D11CreateDeviceFunc;
     D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_11_0 };
     HRESULT res;
+
+    bool has_dxbc = SDL_GetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXBC_BOOLEAN, false);
+    if (!has_dxbc) {
+        return false;
+    }
 
     D3D11CreateDeviceFunc = (PFN_D3D11_CREATE_DEVICE)D3D11CreateDevice;
 
@@ -6246,6 +6298,7 @@ static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SD
     IDXGIFactory6 *factory6;
     Uint32 flags;
     DXGI_ADAPTER_DESC1 adapterDesc;
+    LARGE_INTEGER umdVersion;
     HRESULT res;
     SDL_GPUDevice *result;
 
@@ -6297,7 +6350,7 @@ static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SD
         &D3D_IID_IDXGIFactory6,
         (void **)&factory6);
     if (SUCCEEDED(res)) {
-        IDXGIFactory6_EnumAdapterByGpuPreference(
+        res = IDXGIFactory6_EnumAdapterByGpuPreference(
             factory6,
             0,
             preferLowPower ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
@@ -6305,14 +6358,49 @@ static SDL_GPUDevice *D3D11_CreateDevice(bool debugMode, bool preferLowPower, SD
             (void **)&renderer->adapter);
         IDXGIFactory6_Release(factory6);
     } else {
-        IDXGIFactory2_EnumAdapters1(
+        res = IDXGIFactory2_EnumAdapters1(
             renderer->factory,
             0,
-            &renderer->adapter);
+            (IDXGIAdapter1 **)&renderer->adapter);
+    }
+
+    if (FAILED(res)) {
+        D3D11_INTERNAL_DestroyRenderer(renderer);
+        CHECK_D3D11_ERROR_AND_RETURN("Could not find adapter for D3D11Device", NULL);
     }
 
     // Get information about the selected adapter. Used for logging info.
-    IDXGIAdapter2_GetDesc1(renderer->adapter, &adapterDesc);
+    res = IDXGIAdapter2_GetDesc1(renderer->adapter, &adapterDesc);
+    if (FAILED(res)) {
+        CHECK_D3D11_ERROR_AND_RETURN("Could not get adapter description", NULL);
+    }
+    res = IDXGIAdapter2_CheckInterfaceSupport(renderer->adapter, &D3D_IID_IDXGIDevice, &umdVersion);
+    if (FAILED(res)) {
+        D3D11_INTERNAL_DestroyRenderer(renderer);
+        CHECK_D3D11_ERROR_AND_RETURN("Could not get adapter driver version", NULL);
+    }
+
+    renderer->props = SDL_CreateProperties();
+
+    char *deviceName = SDL_iconv_wchar_utf8(&adapterDesc.Description[0]);
+    SDL_SetStringProperty(
+        renderer->props,
+        SDL_PROP_GPU_DEVICE_NAME_STRING,
+        deviceName);
+
+    char driverVer[64];
+    (void)SDL_snprintf(
+        driverVer,
+        SDL_arraysize(driverVer),
+        "%d.%d.%d.%d",
+        HIWORD(umdVersion.HighPart),
+        LOWORD(umdVersion.HighPart),
+        HIWORD(umdVersion.LowPart),
+        LOWORD(umdVersion.LowPart));
+    SDL_SetStringProperty(
+        renderer->props,
+        SDL_PROP_GPU_DEVICE_DRIVER_VERSION_STRING,
+        driverVer);
 
     // Initialize the DXGI debug layer, if applicable
     if (debugMode) {
@@ -6419,6 +6507,7 @@ tryCreateDevice:
 
     // Initialize miscellaneous renderer members
     renderer->debugMode = (flags & D3D11_CREATE_DEVICE_DEBUG);
+    renderer->allowedFramesInFlight = 2;
 
     // Create command buffer pool
     D3D11_INTERNAL_AllocateCommandBuffers(renderer, 2);
@@ -6482,7 +6571,6 @@ tryCreateDevice:
 
 SDL_GPUBootstrap D3D11Driver = {
     "direct3d11",
-    SDL_GPU_SHADERFORMAT_DXBC,
     D3D11_PrepareDriver,
     D3D11_CreateDevice
 };

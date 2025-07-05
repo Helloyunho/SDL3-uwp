@@ -84,30 +84,6 @@ SDL_TrayEntry *SDL_InsertTrayEntryAt(SDL_TrayMenu *menu, int pos, const char *la
 
 void SDL_SetTrayEntryLabel(SDL_TrayEntry *entry, const char *label)
 {
-    if (!entry) {
-        return;
-    }
-
-    SDL_snprintf(entry->label_cache, sizeof(entry->label_cache), "%s", label);
-
-    wchar_t *label_w = escape_label(label);
-
-    if (!label_w) {
-        return;
-    }
-
-    MENUITEMINFOW mii;
-    mii.cbSize = sizeof(MENUITEMINFOW);
-    mii.fMask = MIIM_STRING;
-
-    mii.dwTypeData = label_w;
-    mii.cch = (UINT)SDL_wcslen(label_w);
-
-    if (!SetMenuItemInfoW(entry->parent->hMenu, (UINT)entry->id, FALSE, &mii)) {
-        SDL_SetError("Couldn't update tray entry label");
-    }
-
-    SDL_free(label_w);
 }
 
 const char *SDL_GetTrayEntryLabel(SDL_TrayEntry *entry)
