@@ -6565,6 +6565,7 @@ tryCreateDevice:
     result = (SDL_GPUDevice *)SDL_malloc(sizeof(SDL_GPUDevice));
     ASSIGN_DRIVER(D3D11)
     result->driverData = (SDL_GPURenderer *)renderer;
+    result->shader_formats = SDL_GPU_SHADERFORMAT_DXBC;
 
     return result;
 }
